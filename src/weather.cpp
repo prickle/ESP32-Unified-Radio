@@ -5,13 +5,11 @@ WiFiClient weatherClient; // wifi client object
 bool weatherExpanded = true;
 OW_forecast *forecast;
 
-#define WEATHER_TIMEOUT 20000
 
 //Weather API
-const char* weatherHost     = "api.openweathermap.org";
-String owmLocation = "Melbourne,au";
-String owmKey = "b69d7e9800e16452f3ad5e92e64dff08";
-//"lon":144.9633,"lat":-37.814
+const char* weatherHost = WEATHER_HOST;
+String owmLocation = WEATHER_LOCATION;
+String owmKey = WEATHER_OWMKEY;
 
 const unsigned long  weatherPostingInterval = 30L*60L*1000L; // Delay between updates, in milliseconds, WU allows 500 requests per-day maximum, this sets it to every 30-mins or 48/day
 

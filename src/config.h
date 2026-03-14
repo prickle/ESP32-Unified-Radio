@@ -89,6 +89,12 @@ extern uint8_t mainWindowIndex;
 #define PODCAST_KEY        "TBM6PUVWQX3BYGSFSG3T"
 #define PODCAST_SECRET     "kskKLdVsQ^ZBEbnkaZKvPJV$89H#zrwb6dBMMFS2"
 
+//Open Weather Map - api.openweathermap.org
+#define WEATHER_HOST       "api.openweathermap.org";
+#define WEATHER_LOCATION   "Melbourne,au";
+#define WEATHER_OWMKEY     "b69d7e9800e16452f3ad5e92e64dff08";
+#define WEATHER_TIMEOUT    20000
+
 //Battery monitoring
 extern float battV;
 extern float solarV;
