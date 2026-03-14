@@ -297,7 +297,6 @@
 #include <FS.h>
 #include <SPIFFS.h>
 #include <SD.h>
-#include <ESP32Time.h>
 #include <Adafruit_GFX.h>
 #include <ArduinoFTPClient.h> //Modified
 #include <TJpg_Decoder.h>

@@ -3,8 +3,6 @@
 // NTP handler
 // OTA window
 
-//Real time clock
-ESP32Time rtc(0);
 volatile int wifiState;
 
 bool wifiStartScan = false;
@@ -414,6 +412,7 @@ void setupTLS() {
 #endif
 
 //-----------------------------------------
+//ESP32 glibc RTC
 // Mini non-blocking NTP client
 
 #define NTP_PACKET_SIZE   48 // NTP time is in the first 48 bytes of message
@@ -437,6 +436,15 @@ time_t getTime() {
   time_t now;
   time(&now);  
   return now;
+}
+
+String getTime(String format){
+  time_t tt = getTime(); 
+  tm *mt = localtime(&tt);  
+	char s[128], c[128];
+	format.toCharArray(c, 127);
+	strftime(s, 127, c, mt);
+	return String(s);
 }
 
 //Call from setup()
@@ -483,10 +491,10 @@ void NTPHandle() {
       secsSince1900 |= (unsigned long)packetBuffer[41] << 16;
       secsSince1900 |= (unsigned long)packetBuffer[42] << 8;
       secsSince1900 |= (unsigned long)packetBuffer[43];
-      rtc.setTime(secsSince1900 - 2208988800UL);
+      setTime(secsSince1900 - 2208988800UL);
       
       //Time is now set
-      serial.println(rtc.getTime("%a %d/%m/%y %H:%M:%S"));
+      serial.println(getTime("%a %d/%m/%y %H:%M:%S"));
       RTCSet = true;
       ntpWaitResponse = false;
     }

@@ -42,10 +42,7 @@ extern String dlnaMetaName, dlnaMetaAlbum;
 #define FTP_NAME_LENGTH  512
 
 //Clock
-extern ESP32Time rtc;
-//#define TIMEZONE   10 * 3600
 #define TZ "AEST-10AEDT,M10.1.0/02:00:00,M4.1.0/03:00:00"
-//#define GMT "GMT0"
 #define TIMESERVER "pool.ntp.org"
 
 //Screensaver

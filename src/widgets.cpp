@@ -159,7 +159,7 @@ void drawFFT(lv_obj_t* obj, uint8_t* data) {
   //int16_t bgcol = lv_color_to16(lv_theme_get_color_primary(obj));
   GFXcanvas16* fftBuffer = fft->img;  
   if (!fftBuffer) return;
-  int w = fftBuffer->width() - 1;
+  //int w = fftBuffer->width() - 1;
   int h = fftBuffer->height() - 1;
   for (int bar = 0; bar < fft->numBars; bar++) {
     int x = bar * fft->barWidth;
