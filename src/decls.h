@@ -657,6 +657,8 @@ void wifiDisconnect();
 void wifiBeginScan();
 void NTPUpdate();
 void NTPHandle();
+void setTime(int sc, int mn, int hr, int dy, int mt, int yr);
+String getTime(String format);
 int getHour(bool tfh);
 int getMinute();
 int getDay();

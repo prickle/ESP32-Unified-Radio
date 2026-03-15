@@ -222,18 +222,17 @@ void createSettingsWindow(lv_obj_t * page) {
 
       //The main info container window
     mainContainer = lv_obj_create(page);
+    int height = 116;
 #ifdef EQUALIZER
-#if (TFT_WIDTH == 480)
-    lv_obj_set_size(mainContainer, 460, 246);
-#else  
-    lv_obj_set_size(mainContainer, 308, 246);
+    height += 94;
 #endif
-#else
-#if (TFT_WIDTH == 480)
-    lv_obj_set_size(mainContainer, 460, 152);
-#else  
-    lv_obj_set_size(mainContainer, 308, 152);
+#ifndef FORCE_MONO
+    height += 36
 #endif
+#if (TFT_WIDTH == 480)
+    lv_obj_set_size(mainContainer, 460, height);
+#else  
+    lv_obj_set_size(mainContainer, 308, height);
 #endif
     lv_obj_set_pos(mainContainer, 4, 8);
     lv_obj_add_style(mainContainer, &style_groupbox, LV_PART_MAIN);
@@ -336,10 +335,11 @@ void createSettingsWindow(lv_obj_t * page) {
     lv_obj_add_event_cb(webToneSlider3, settingReleasedAction, LV_EVENT_RELEASED, NULL);
 #endif
 
+#ifndef FORCE_MONO
     lv_obj_t * wideLabel = lv_label_create(mainContainer);
     lv_label_set_text(wideLabel, "Stereo Wide");  //Set the text
 #ifdef EQUALIZER
-    lv_obj_align_to(wideLbl, toneLbl, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 66);
+    lv_obj_align_to(wideLabel, toneLbl, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 66);
 #else
     lv_obj_align_to(wideLabel, volDABLbl, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 16);
 #endif
@@ -349,10 +349,19 @@ void createSettingsWindow(lv_obj_t * page) {
     else lv_obj_clear_state(wideSwitch, LV_STATE_CHECKED);
     lv_obj_align_to(wideSwitch, wideLabel, LV_ALIGN_OUT_RIGHT_MID, 20, 0);         //Align next to the slider
     lv_obj_add_event_cb(wideSwitch, wideAction, LV_EVENT_VALUE_CHANGED, NULL); 
+#endif
 
     // Add the brightness slider
     lv_obj_t * brightLbl = lv_label_create(mainContainer); //First parameters (scr) is the parent
+#ifndef FORCE_MONO
     lv_obj_align_to(brightLbl, wideLabel, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 16);
+#else
+#ifdef EQUALIZER
+    lv_obj_align_to(brightLbl, toneLbl, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 66);
+#else
+    lv_obj_align_to(wideLabel, volDABLbl, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 16);
+#endif
+#endif
     lv_label_set_text(brightLbl, "Brightness");  //Set the text
     brightSlider = lv_slider_create(mainContainer);                            //Create a slider
 #if (TFT_WIDTH == 480)

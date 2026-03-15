@@ -432,6 +432,18 @@ void setTime(time_t now) {
   settimeofday(&tv, NULL);
 }
 
+void setTime(int sc, int mn, int hr, int dy, int mt, int yr) {
+  struct tm t = {};
+  t.tm_year = yr - 1900;
+  t.tm_mon = mt - 1;
+  t.tm_mday = dy;
+  t.tm_hour = hr;
+  t.tm_min = mn;
+  t.tm_sec = sc;
+  time_t timeSinceEpoch = mktime(&t);
+  setTime(timeSinceEpoch);
+}
+
 time_t getTime() {
   time_t now;
   time(&now);  

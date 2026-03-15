@@ -408,8 +408,8 @@ void RDS_Time(uint16_t hour, uint16_t min, uint16_t day, uint16_t month, uint16_
   //Set RTC if not set
   if (!RTCSet) {
     serial.print("> Got time from RDS: ");
-    rtc.setTime(0, min, hour, day, month, year);
-    serial.println(rtc.getTime("%A, %B %d %Y %H:%M:%S"));
+    setTime(0, min, hour, day, month, year);
+    serial.println(getTime("%A, %B %d %Y %H:%M:%S"));
     RTCSet = true;
   }
 }
