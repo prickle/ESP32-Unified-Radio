@@ -227,7 +227,7 @@ void createSettingsWindow(lv_obj_t * page) {
     height += 94;
 #endif
 #ifndef FORCE_MONO
-    height += 36
+    height += 36;
 #endif
 #if (TFT_WIDTH == 480)
     lv_obj_set_size(mainContainer, 460, height);
