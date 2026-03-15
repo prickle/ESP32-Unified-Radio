@@ -432,7 +432,7 @@ void setTime(time_t now) {
   settimeofday(&tv, NULL);
 }
 
-void setTime(int sc, int mn, int hr, int dy, int mt, int yr) {
+void setTime(int sc, int mn, int hr, int dy, int mt, int yr, bool dstComp) {
   struct tm t = {};
   t.tm_year = yr - 1900;
   t.tm_mon = mt - 1;
@@ -441,6 +441,7 @@ void setTime(int sc, int mn, int hr, int dy, int mt, int yr) {
   t.tm_min = mn;
   t.tm_sec = sc;
   time_t timeSinceEpoch = mktime(&t);
+  if (dstComp && t.tm_isdst) timeSinceEpoch -= 3600;
   setTime(timeSinceEpoch);
 }
 

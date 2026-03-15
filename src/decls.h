@@ -657,7 +657,7 @@ void wifiDisconnect();
 void wifiBeginScan();
 void NTPUpdate();
 void NTPHandle();
-void setTime(int sc, int mn, int hr, int dy, int mt, int yr);
+void setTime(int sc, int mn, int hr, int dy, int mt, int yr, bool dstComp);
 String getTime(String format);
 int getHour(bool tfh);
 int getMinute();
