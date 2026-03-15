@@ -467,7 +467,7 @@ void initNTP() {
 
 //Called from wifiHandle() when first connected
 void NTPBegin() {
-  if (!RTCSet) NTPretry = millis() + 15000;  //First update - 15 seconds after connect
+  if (!RTCSet) NTPretry = millis() + 1000;  //First update - 1 second after connect
 }
 
 //Force NTP update now
