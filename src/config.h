@@ -353,6 +353,7 @@ struct __attribute__ ((packed)) settingsObject{
   uint8_t agcSW;
   uint8_t agcLW;
   char tz[64];
+  bool wide;
 };
 //Pointer to settings object
 extern settingsObject* settings;

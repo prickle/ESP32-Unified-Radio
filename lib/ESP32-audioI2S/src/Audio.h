@@ -177,6 +177,7 @@ public:
     void loop();
     uint32_t stopSong();
     void forceMono(bool m);
+    void stereoWide(bool w);
     void setBalance(int8_t bal = 0);
     void setVolume(uint8_t vol);
     uint8_t getVolume();
@@ -477,6 +478,7 @@ private:
     bool            m_f_tts = false;                // text to speech
     bool            m_f_loop = false;               // Set if audio file should loop
     bool            m_f_forceMono = false;          // if true stereo -> mono
+    bool            m_f_stereoWide = false;
     bool            m_f_internalDAC = false;        // false: output vis I2S, true output via internal DAC
     bool            m_f_rtsp = false;               // set if RTSP is used (m3u8 stream)
     bool            m_f_m3u8data = false;           // used in processM3U8entries

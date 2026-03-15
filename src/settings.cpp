@@ -73,7 +73,8 @@ void setDefaults() {
     0,          //agcMW
     0,          //agcLW
     0,          //agcSW
-    TZ
+    TZ,         //timezone
+    false       //Stereo Wide
   }; 
   memcpy(settings, &defaults, sizeof(settingsObject));
 }
@@ -109,6 +110,7 @@ void initSettings() {
 //lvgl widgets
 
 void dabVolumeAction(lv_event_t * event);
+void wideAction(lv_event_t * event);
 void settingReleasedAction(lv_event_t * event);
 void wifiDisconnectAction(lv_event_t * event);
 void wifiLongPressAction(lv_event_t * event);
@@ -163,6 +165,7 @@ static lv_obj_t * brightSlider;
 static lv_obj_t * webToneSlider1;
 static lv_obj_t * webToneSlider2;
 static lv_obj_t * webToneSlider3;
+static lv_obj_t * wideSwitch;
 
 bool editWifiPassword = false;
 const char * wlanStateString[] = { "WiFi Idle", "No SSID", "Scan Completed", "Connected", 
@@ -221,15 +224,15 @@ void createSettingsWindow(lv_obj_t * page) {
     mainContainer = lv_obj_create(page);
 #ifdef EQUALIZER
 #if (TFT_WIDTH == 480)
-    lv_obj_set_size(mainContainer, 460, 210);
+    lv_obj_set_size(mainContainer, 460, 246);
 #else  
-    lv_obj_set_size(mainContainer, 308, 210);
+    lv_obj_set_size(mainContainer, 308, 246);
 #endif
 #else
 #if (TFT_WIDTH == 480)
-    lv_obj_set_size(mainContainer, 460, 116);
+    lv_obj_set_size(mainContainer, 460, 152);
 #else  
-    lv_obj_set_size(mainContainer, 308, 116);
+    lv_obj_set_size(mainContainer, 308, 152);
 #endif
 #endif
     lv_obj_set_pos(mainContainer, 4, 8);
@@ -333,13 +336,23 @@ void createSettingsWindow(lv_obj_t * page) {
     lv_obj_add_event_cb(webToneSlider3, settingReleasedAction, LV_EVENT_RELEASED, NULL);
 #endif
 
+    lv_obj_t * wideLabel = lv_label_create(mainContainer);
+    lv_label_set_text(wideLabel, "Stereo Wide");  //Set the text
+#ifdef EQUALIZER
+    lv_obj_align_to(wideLbl, toneLbl, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 66);
+#else
+    lv_obj_align_to(wideLabel, volDABLbl, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 16);
+#endif
+    wideSwitch = lv_switch_create(mainContainer);
+    lv_obj_set_size(wideSwitch, 44, 20);
+    if (settings->wide) lv_obj_add_state(wideSwitch, LV_STATE_CHECKED);
+    else lv_obj_clear_state(wideSwitch, LV_STATE_CHECKED);
+    lv_obj_align_to(wideSwitch, wideLabel, LV_ALIGN_OUT_RIGHT_MID, 20, 0);         //Align next to the slider
+    lv_obj_add_event_cb(wideSwitch, wideAction, LV_EVENT_VALUE_CHANGED, NULL); 
+
     // Add the brightness slider
     lv_obj_t * brightLbl = lv_label_create(mainContainer); //First parameters (scr) is the parent
-#ifdef EQUALIZER
-    lv_obj_align_to(brightLbl, toneLbl, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 66);
-#else
-    lv_obj_align_to(brightLbl, volDABLbl, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 16);
-#endif
+    lv_obj_align_to(brightLbl, wideLabel, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 16);
     lv_label_set_text(brightLbl, "Brightness");  //Set the text
     brightSlider = lv_slider_create(mainContainer);                            //Create a slider
 #if (TFT_WIDTH == 480)
@@ -632,6 +645,12 @@ void dabVolumeAction(lv_event_t * event) {
 #else
   setDspVolume(settings->dabVolume);
 #endif  
+}
+
+void wideAction(lv_event_t * event) {
+  settings->wide = lv_obj_has_state(wideSwitch, LV_STATE_CHECKED);
+  setStereoWide(settings->wide);
+  writeSettings();
 }
 
 void settingReleasedAction(lv_event_t * event) {

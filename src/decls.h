@@ -381,6 +381,7 @@ void startI2S();
 void dabStop();
 void dabFMSearch(uint8_t dir);
 void setVolume(uint8_t volume);
+void setStereoWide(bool wide);
 void dabHandle();
 void initDab();
 void dabTuningAction(int freq);

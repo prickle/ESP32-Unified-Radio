@@ -27,7 +27,7 @@ unsigned long retryms = 0;
 //Webradio commands
 enum : uint8_t { WR_START, WR_SETVOLUME, WR_GETVOLUME, WR_CONNECTTOHOST, WR_CONNECTTOFS, WR_STOPSONG, 
                  WR_META, WR_CONNECTING, WR_SETTONE, WR_STATS, WR_TITLE, WR_STATION, WR_ICYURL, WR_DELETE, 
-                 WR_VU, WR_EOF, WR_EMBED, WR_RESPONSE, WR_MONO, WR_SRATE };
+                 WR_VU, WR_EOF, WR_EMBED, WR_RESPONSE, WR_MONO, WR_SRATE, WR_SETWIDE };
 
 //Webradio message
 struct audioMessage{
@@ -96,6 +96,7 @@ void webradioSetup() {
 #ifdef EQUALIZER
   setVSTone(settings->vsTone);
 #endif
+  //setStereoWide(settings->wide);
   //Create webradio thread
   xTaskCreatePinnedToCore(
              radioTask,           // Task function. 
@@ -125,6 +126,14 @@ void setDspVolume(uint8_t volume) {
 #if !defined(MONKEYBOARD) && !defined(NXP6686)
 void setVolume(uint8_t volume) { setDspVolume(volume); }
 #endif
+
+//Stereo Wide
+void setStereoWide(bool wide) {
+  if (!audioSetQueue) return;
+  audioTxMessage.cmd = WR_SETWIDE;
+  audioTxMessage.value1 = wide;
+  xQueueSend(audioSetQueue, &audioTxMessage, 0);
+}
 
 //Webradio - start a connection to a webradio URL
 // if metadata true, try to stream IcyRadio
@@ -656,6 +665,10 @@ void radioTask( void * pvParameters ) {
       //Volume
       if(audioRxTaskMessage.cmd == WR_SETVOLUME){
         audio->setVolume(audioRxTaskMessage.value1);
+      }
+      //Stereo Wide
+      else if(audioRxTaskMessage.cmd == WR_SETWIDE){
+        audio->stereoWide(audioRxTaskMessage.value1);
       }
       //Stereo/mono
       else if(audioRxTaskMessage.cmd == WR_MONO){

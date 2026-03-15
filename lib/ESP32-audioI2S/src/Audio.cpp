@@ -4306,6 +4306,15 @@ bool Audio::playSample(int16_t sample[2]) {
     sample[LEFTCHANNEL]  = sample[LEFTCHANNEL]  >> 1; // half Vin so we can boost up to 6dB in filters
     sample[RIGHTCHANNEL] = sample[RIGHTCHANNEL] >> 1;
 
+    //Stereo wide
+    if (m_f_stereoWide) {
+        static float wideness = 0.4;
+        float mid = (sample[LEFTCHANNEL] + sample[RIGHTCHANNEL]) * 0.5f;
+        float side = (sample[LEFTCHANNEL] - sample[RIGHTCHANNEL]) * (0.5f + wideness);
+        sample[LEFTCHANNEL] = mid + side;
+        sample[RIGHTCHANNEL] = mid - side;    
+    }
+
     // Filterchain, can commented out if not used
     sample = IIR_filterChain0(sample);
     sample = IIR_filterChain1(sample);
@@ -4356,6 +4365,10 @@ void Audio::setTone(int8_t gainLowPass, int8_t gainBandPass, int8_t gainHighPass
 //---------------------------------------------------------------------------------------------------------------------
 void Audio::forceMono(bool m) { // #100 mono option
     m_f_forceMono = m; // false stereo, true mono
+}
+//---------------------------------------------------------------------------------------------------------------------
+void Audio::stereoWide(bool m) { // Stereo Wide
+    m_f_stereoWide = m; // false off, true on
 }
 //---------------------------------------------------------------------------------------------------------------------
 void Audio::setBalance(int8_t bal){ // bal -16...16
