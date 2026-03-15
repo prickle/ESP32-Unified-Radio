@@ -341,7 +341,9 @@ void webradioStop();
 void setMonoOutput(bool mono);
 
 //batt.cpp
+#ifdef I2C_SDA
 void i2cScan();
+#endif
 #ifdef BATTERYMON
 void ADCHandle();
 void ADCInit();

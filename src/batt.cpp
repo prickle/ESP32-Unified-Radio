@@ -7,6 +7,7 @@ volatile bool ADCFound = false;
 volatile bool touchFound = false;
 volatile bool nxpFound = false;
 
+#ifdef I2C_SDA
 //Look for I2C devices
 void i2cScan() {
   serial.print("> Scanning I2C Bus: ");
@@ -42,6 +43,7 @@ void i2cScan() {
   serial.printf(" device%s found.\r\n", nDevices == 1?"":"s");
   terminalHandle();
 }
+#endif
 
 #ifdef BATTERYMON
 //Battery monitor, ADC and current shunt
