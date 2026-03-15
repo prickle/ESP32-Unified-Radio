@@ -1061,7 +1061,7 @@ void podcastHandle() {
     else if (podcastRxMessage.cmd == POD_FINISHED && podFinished) podFinished();
     else if (podcastRxMessage.cmd == POD_ERROR) {
       serial.printf(LV_SYMBOL_WARNING " Podcast server request failed, response code: %d\r\n", podcastRxMessage.numResults);
-      info(TEXT, 0, LV_SYMBOL_WARNING "Podcast server request failed, response code: %d", podcastRxMessage.numResults);
+      info(NOW, 0, LV_SYMBOL_WARNING "Podcast server request failed, response code: %d", podcastRxMessage.numResults);
     }
   }
 }
