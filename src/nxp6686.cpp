@@ -94,7 +94,7 @@ nxpBandRange nxpSWBandTable[] = {
 int nxpBandTableIndex = 0;
 
 //char programTypePrevious[17] = "                ";
-char programServicePrevious[9];
+char stationName[9];
 char radioTextPrevious[65];
 
 bool NXPSearching = false;
@@ -191,8 +191,9 @@ void NXPSetFrequency(uint32_t frequency) {
     NXPUpdateDisplay(frequency);
   }
   rdsTimer = millis() + RDS_INTERVAL;
-  programServicePrevious[0] = '\0';
+  stationName[0] = '\0';
   NXPShowFineTune();
+  updateUrlEditText();
 }
 
 void NXPSetBandwidth(int index) {
@@ -229,7 +230,7 @@ void NXPChangeFrequency(bool up) {
   NXPUpdateDisplay(freq);
   rdsTimer = millis() + RDS_INTERVAL;
   NXPDialTimer = millis() + NXP_DIAL_DELAY;
-  programServicePrevious[0] = '\0';
+  stationName[0] = '\0';
 }
 
 void NXPStartFM() {
@@ -390,8 +391,8 @@ void RDS_ProgramService(char* service) {
   //  if (programTypePrevious[0] != '\0')
   //    info(NOW, 0, "%s (%s)", service, programTypePrevious);
   //  else
-      info(NOW, 0, "%s", service);
-  //  strcpy(programServicePrevious, service);
+    info(NOW, 0, "%s", service);
+    strcpy(stationName, service);
   //}
 }
 

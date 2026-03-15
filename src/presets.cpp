@@ -167,6 +167,21 @@ void savePreset(uint16_t index) {
     else snprintf(settings->presets[index].name, 34, "FM %.1f", dabFrequency / 1000.0);
   }
 #endif
+#ifdef NXP6686  
+  else if (settings->mode == MODE_NFM) {
+    if (strlen(stationName)) snprintf(settings->presets[index].name, 34, "%s FM %.1f", stationName, settings->dabFM / 1000.0);
+    else snprintf(settings->presets[index].name, 34, "FM %.1f", settings->dabFM / 1000.0);
+  }
+  else if (settings->mode == MODE_NMW) {
+    snprintf(settings->presets[index].name, 34, "AM %d", settings->freqMW);
+  }
+  else if (settings->mode == MODE_NLW) {
+    snprintf(settings->presets[index].name, 34, "LW %d", settings->freqLW);
+  }
+  else if (settings->mode == MODE_NSW) {
+    snprintf(settings->presets[index].name, 34, "SW %d", settings->freqSW);
+  }
+#endif
   else return;  
   serial.printf("> Save preset %d as %s: %s\r\n", index, modeString[settings->mode], name);
   writeSettings();
@@ -211,6 +226,12 @@ void loadPreset(uint16_t index) {
 #ifdef MONKEYBOARD
   else if (mode == MODE_DAB) strncpy(settings->dabChannel, data, 34);
   else if (mode == MODE_FM) settings->dabFM = atof(strrchr(data, ' ')+1) * 1000.0;
+#endif
+#ifdef NXP6686
+  else if (mode == MODE_NFM) settings->dabFM = atof(strrchr(data, ' ')+1) * 1000.0;
+  else if (mode == MODE_NMW) settings->freqMW = atof(strrchr(data, ' ')+1);
+  else if (mode == MODE_NLW) settings->freqLW = atof(strrchr(data, ' ')+1);
+  else if (mode == MODE_NSW) settings->freqSW = atof(strrchr(data, ' ')+1);
 #endif
   else return;
   tabViewShowMain();
@@ -262,6 +283,24 @@ void updateUrlEditText() {
     }
     else if (settings->mode == MODE_DAB) {
       sprintf(str, "DAB://%s", settings->dabChannel);
+      lv_textarea_set_text(urlEditText, str);    
+    }
+#endif
+#ifdef NXP6686
+    else if (settings->mode == MODE_NFM) {
+      sprintf(str, "FM://%.1fMhz", settings->dabFM / 1000.0);
+      lv_textarea_set_text(urlEditText, str);    
+    }
+    else if (settings->mode == MODE_NMW) {
+      sprintf(str, "AM://%dKhz", settings->freqMW);
+      lv_textarea_set_text(urlEditText, str);    
+    }
+    else if (settings->mode == MODE_NLW) {
+      sprintf(str, "LW://%dKhz", settings->freqLW);
+      lv_textarea_set_text(urlEditText, str);    
+    }
+    else if (settings->mode == MODE_NSW) {
+      sprintf(str, "SW://%dKhz", settings->freqSW);
       lv_textarea_set_text(urlEditText, str);    
     }
 #endif

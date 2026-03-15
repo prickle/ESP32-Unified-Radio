@@ -139,7 +139,9 @@ extern bool battCharging;           //when charging
 #define NXPTABLE_SMAX 6
 #define NXPTABLE_TMIN 7
 #define NXPTABLE_TMAX 8
-
+#ifdef NXP6686
+extern char stationName[9];
+#endif
 
 //Shared styles
 extern lv_style_t style_wp;
