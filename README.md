@@ -5,59 +5,66 @@ PlatformIO Project
 Note that the included libraries have been modified for this project.
 
 Features:
-- Webradio player
+
+-- Webradio player
 - Supports all stations, bitrates and codecs (so far)
 - Webradio favourites list with full edit controls
 - Webradio station search
   
-- Podcast player
+-- Podcast player
 - Episode lists
 - Podcast favourites list with latest episode previews
 - Podcast search
 
-- SD music file player
+-- SD music file player
 - File browser
 - Playlist construction
 - Playlist editor
 - Support for album art  
 - Image viewer
 
-- Windows media client
+-- Windows media client
 - File browser
 - Playlists
 - Album art
   
-- Ftp streaming client
+-- Ftp streaming client
 - File browser
 - Playlists
 - Album art
 
-- Radio Receiver (using NXP6686)
+-- Radio Receiver (using NXP6686)
 - AM, FM, SW, LW
 - Graphical band Scanner
 - RDS Support
 
-- DAB+ Receiver (using Monkeyboard)
+-- DAB+ Receiver (using Monkeyboard)
 - Station slideshow display
 - Also receives FM
 - RDS Support
 - Requires access to Monkeyboard library, contact me
 
-- Real time clock (updated from NTP, DAB or RDS)
+-- Presets
+- Programmable preset buttons
+- Instant access to favourite stations, podcasts or broadcasts
+
+-- Real time clock (updated from NTP, DAB or RDS)
 - Weather forecast
 - Current conditions
 - 4 day forecast
 
+-- Audio
 - VU meter
 - Spectrum Analyzer
 - 3-band Equalizer
 - Stereo Wide
 
+-- Debugging
 - Log viewer
 - Performance monitor
 - Factory functions
 
-- Full touchscreen control
+-- Extra
 - Battery charge monitor
 - Several different external button control methods
 
