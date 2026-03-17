@@ -96,7 +96,7 @@ void webradioSetup() {
 #ifdef EQUALIZER
   setVSTone(settings->vsTone);
 #endif
-  //setStereoWide(settings->wide);
+  setStereoWide(settings->wide);
   //Create webradio thread
   xTaskCreatePinnedToCore(
              radioTask,           // Task function. 
