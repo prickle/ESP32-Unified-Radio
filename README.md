@@ -1,7 +1,9 @@
 ESP32 Unified Radio
 
 Full function webradio for ESP32 or ESP32S3
+
 PlatformIO Project
+
 Note that the included libraries have been modified for this project.
 
 Features:
@@ -70,8 +72,11 @@ Features:
 
 
 Example hardware target:
+
 The "env:woofer" environment targets the WT32-SC01 Plus, an easily obtainable ESP32S3 module that works well.
+
 The "env:panasonic" environment targets the WT32-SC01, the plain ESP32 version.
+
 The other environments use custom built hardware, profiles can be found near the top of defs.h
 
 If you do use it, please credit me and get your own API keys. Cheers!
