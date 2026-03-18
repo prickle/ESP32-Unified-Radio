@@ -621,6 +621,7 @@ bool readPodcastFile(const char* filename) {
     }
   }
   lv_fs_close(&f);
+  searchStationName[0] = '\0';  
   return true;
 }
 
