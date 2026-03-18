@@ -3481,6 +3481,20 @@ void Audio::processAudioHeaderData() {
         return;
     }
 
+    if(indexOf(hl, "HTTP/1.0 403", 0) >= 0) {
+        m_f_running = false;
+        stopSong();
+        if(audio_info) audio_info("403 Forbidden");
+        return;
+    }
+
+    if(indexOf(hl, "HTTP/1.1 403", 0) >= 0) {
+        m_f_running = false;
+        stopSong();
+        if(audio_info) audio_info("403 Forbidden");
+        return;
+    }
+
     if(indexOf(hl, "ICY 401", 0) >= 0) {
         m_f_running = false;
         stopSong();

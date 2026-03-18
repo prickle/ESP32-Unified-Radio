@@ -214,8 +214,8 @@
 //4M Flash, 4M PSRAM
 //Partition: With OTA
 #define LVGL_BUFF_SIZE  40                   //even number please..
-#define NUM_PRESETS 12
-#define PRESET_HEIGHT 50
+#define NUM_PRESETS 16
+#define PRESET_HEIGHT 70
 
 //NXP/TEF6686 Radio module
 #define NXP6686

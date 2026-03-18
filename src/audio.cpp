@@ -10,6 +10,7 @@ uint8_t wrChannels = 0;
 char* wrurl; //[FTP_NAME_LENGTH];
 bool wrMeta;
 uint32_t wrResume = 0;
+char response[64] = {};
 //String buffers
 #define METABUF_LEN 128
 char* wrTitle;
@@ -223,7 +224,6 @@ void addNewStation() {
 void webradioHandle() {
   //static unsigned long fft_ms = 0;
   static bool wrWasRunning = false;
-  static const char* response = NULL;
   
   if (!audioGetQueue) return;
 
@@ -243,7 +243,7 @@ void webradioHandle() {
       audioTxMessage.txt = wrurl;
       audioTxMessage.value1 = wrMeta;
       xQueueSend(audioSetQueue, &audioTxMessage, 0);
-      response = NULL;
+      response[0] = '\0';
     }
   }
 
@@ -308,15 +308,10 @@ void webradioHandle() {
             info(NAME, 0, LV_SYMBOL_STOP " Stopped");
 #endif
           }
-          //If webstreaming ever stops, something is wrong?
+          //Webradio reconnect
           if (settings->mode == MODE_WEB) {
             if (strlen(wrurl) > 0 && !newURL) retryms = millis() + 2000;  //We will try to reconnect in 2 seconds
             else info(NOW, 0, LV_SYMBOL_LEFT " Choose stations from the list to the left.. ");
-            //Did the server report anything?
-            if (response && strlen(response)) {
-              if (atoi(response) != 200)          //Ignore "200 OK" because the problem is elsewhere (DNS?) and this wouldn't make sense
-                info(TEXT, 0, LV_SYMBOL_WARNING "Server Responded: %s", response);              
-            }
           }
           //Call the end of file functions here
 #ifdef SDPLAYER
@@ -326,6 +321,16 @@ void webradioHandle() {
 #endif
           if (settings->mode == MODE_POD) podEOF();
 
+          //Check for response codes
+          if (settings->mode == MODE_WEB || settings->mode == MODE_POD || settings->mode == MODE_DLNA) {
+            //Did the server report anything?
+            if (response[0]) {
+              if (atoi(response) != 200) {         //Ignore "200 OK" because the problem is elsewhere (DNS?) and this wouldn't make sense
+                info(NOW, 0, LV_SYMBOL_WARNING " Error: %s", response);              
+                serial.printf("> Server Responded: %s", response);
+              }
+            }
+          }
         }
       }
     }
@@ -398,7 +403,8 @@ void webradioHandle() {
       findAlbumArt(wrurl);
     }
     else if (audioRxMessage.cmd == WR_RESPONSE) {
-      response = audioRxMessage.txt;    //Hold onto the most recent server response code
+      strncpy(response, audioRxMessage.txt, 63);    //Hold onto the most recent server response code
+      response[63] = '\0';
     }
     else if (audioRxMessage.cmd == WR_GETVOLUME) {
       //not used

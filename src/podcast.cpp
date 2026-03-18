@@ -634,7 +634,7 @@ bool readPodcastFile(const char* filename) {
             podInfo* info = new podInfo(id, name, desc, false, "", -1, 0);
             addPodcastButton(info);
             if (search && strcmp(name, searchStationName) == 0) {
-              serial.println("> Selected podcast found.");
+              serial.print(" (found) ");
               autoplay = id;
             }
           }
