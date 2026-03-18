@@ -296,7 +296,7 @@ void podActivate() {
   lv_obj_t* list = podMainList;
   if (podcastEpisodes) list = podEpisodeList;
   lv_obj_t* entry = listGetSelectObj(list);
-  podEntryActivate(entry);
+  if (entry) podEntryActivate(entry);
 }
 
 //When a podcast entry is selected
