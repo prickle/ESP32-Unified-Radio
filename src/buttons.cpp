@@ -13,6 +13,29 @@ int64_t volEncOld = 0;
 int64_t funcEncOld = 0;
 bool setBtnOld = false;
 bool modeBtnOld = false;
+bool powerOff = false;
+
+int setBtnTimer = 0;
+
+//Power button pushed
+void powerButton() {
+  if (!powerOff) {
+    webradioStop();
+    wifiDisconnect();
+    clearProgLbl();
+    setSigStrengthLbl("");
+    setObjectVisibility();
+    clearStations();
+    setBrightness(0);
+    setVolume(0);
+  } else {
+    setBrightness(settings->brightness);
+    setupWifi();
+    setVolume(settings->dabVolume);
+    setRadioMode(settings->mode);
+  }
+  powerOff = !powerOff;
+}
 
 void prepareEncoders() {
   //ESP32Encoder::useInternalWeakPullResistors=DOWN;
@@ -75,8 +98,15 @@ void encodersHandle() {
       int index = listGetSelect(dabStationList) + funcDiff;
       if (index > numItems) index = numItems;
       if (index < 0) index = 0;
-      listSetSelect(index);
+      listSetSelect(dabStationList, index);
     }
+    //Podcast scroll
+    if (settings->mode == MODE_POD) {
+      if (tabView && lv_tabview_get_tab_act(tabView) != 1) 
+        lv_tabview_set_act(tabView, 1, LV_ANIM_ON);
+      podListMove(funcDiff);      
+    }
+
     //FM frequency scroll
 #ifdef MONKEYBOARD
     else if (settings->mode == MODE_FM) {
@@ -94,7 +124,12 @@ void encodersHandle() {
   bool setBtn = !digitalRead(INP_B1C);
   if (setBtn != setBtnOld) {
     setBtnOld = setBtn;
+#ifdef PANASONIC
+    if (powerOff) { if(setBtn) powerButton(); }
+    else if (!setBtn) {
+#else
     if (setBtn) {
+#endif
       screenSaverInteraction();
       lv_obj_t * ddlist = lv_dropdown_get_list(modeList);
       lv_state_t state = lv_obj_get_state(modeList);
@@ -111,9 +146,22 @@ void encodersHandle() {
         if (settings->mode == MODE_NSW || settings->mode == MODE_NMW || settings->mode == MODE_NLW) {
           NXPFineTune();
         }
+        if (settings->mode == MODE_POD) {
+          podActivate();
+        }
       }
+#ifdef PANASONIC
+      setBtnTimer = 0;
+    } else setBtnTimer = millis();
+  }   
+  if (setBtn && setBtnTimer && setBtnTimer + 1000 < millis()) {
+    setBtnTimer = 0;
+    powerButton();
+  }    
+#else
     }
   }
+#endif
 #ifdef TWINSCROLL
   bool modeBtn = !digitalRead(INP_B1C);
   if (modeBtn != modeBtnOld) {
@@ -170,8 +218,6 @@ const char * buttonString[] = { "Prog", "Rew", "FF", "Stop", "Play", "Ipod", "OK
 #define BTN_SRC  16
 #define BTN_PWR  17
 
-bool powerOff = false;
-
 #define REPEAT_TIMER  200
 
 
@@ -179,26 +225,6 @@ void prepareButtons() {
   pinMode(INP_PWR, OUTPUT);
   digitalWrite(INP_PWR, HIGH);
   Serial2.begin(57600, SERIAL_8N1, INP_TXD, INP_RXD);
-}
-
-//Power button pushed
-void powerButton() {
-  if (!powerOff) {
-    webradioStop();
-    wifiDisconnect();
-    clearProgLbl();
-    setSigStrengthLbl("");
-    setObjectVisibility();
-    clearStations();
-    setBrightness(0);
-    setVolume(0);
-  } else {
-    setBrightness(settings->brightness);
-    setupWifi();
-    setVolume(settings->dabVolume);
-    setRadioMode(settings->mode);
-  }
-  powerOff = !powerOff;
 }
 
 

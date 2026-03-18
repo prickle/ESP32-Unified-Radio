@@ -331,11 +331,11 @@ void listClearSelect(lv_obj_t* parent) {
 }
 
 //Set the currently highlighted station list entry selection to list index
-void listSetSelect(int index) {
-  if (!dabStationList) return;
+void listSetSelect(lv_obj_t* list, int index) {
+  if (!list) return;
   closeEditText();
-  for (uint16_t i = 0; i < lv_obj_get_child_cnt(dabStationList); i++) {
-    lv_obj_t* child = lv_obj_get_child(dabStationList, i);
+  for (uint16_t i = 0; i < lv_obj_get_child_cnt(list); i++) {
+    lv_obj_t* child = lv_obj_get_child(list, i);
     if (i == index) {
       lv_obj_add_state(child, LV_STATE_CHECKED);
       lv_obj_scroll_to_view(child, LV_ANIM_OFF);
@@ -397,7 +397,7 @@ void listMoveSelect(int offset) {
   index += offset;
   if (index > numItems) index = numItems;
   if (index < 0) index = 0;
-  listSetSelect(index);  
+  listSetSelect(dabStationList, index);  
 }
 
 

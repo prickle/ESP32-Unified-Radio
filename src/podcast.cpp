@@ -243,6 +243,17 @@ void clearPodEpisodes() {
   lv_obj_clean(podEpisodeList);
 }
 
+void podListMove(int dir) {
+  if (!podMainList || podGettingLatest) return;
+  lv_obj_t* list = podMainList;
+  if (podcastEpisodes) list = podEpisodeList;
+  int numItems = ((lv_obj_get_child_cnt(list) - 1) >> 1) << 1;
+  int index = ((listGetSelect(list) >> 1) + dir) << 1;
+  if (index > numItems) index = numItems;
+  if (index < 0) index = 0;
+  listSetSelect(list, index);
+}
+
 //Context menu
 void podcastListMenu(lv_event_t * event) {
   lv_obj_t * item = lv_event_get_target(event);
@@ -253,15 +264,7 @@ void podcastListMenu(lv_event_t * event) {
   listMenuActivate(menu);
 }
 
-//When a podcast entry is selected
-void podcastAction(lv_event_t * event) {
-  lv_obj_t * child = lv_event_get_target(event);  //selected object
-  //Return if already active
-  if (podGettingLatest || podClientActive) {    //Wait for getting latest..
-    listClearSelect(podMainList);
-    return;
-  }                   
-  listSetSelect(child);
+void podEntryActivate(lv_obj_t* child) {
   //retrieve pocast info
   podInfo* info = (podInfo*)lv_obj_get_user_data(child);
   if (!info) return;
@@ -286,6 +289,26 @@ void podcastAction(lv_event_t * event) {
     }
   }
   updateUrlEditText();    
+}
+
+void podActivate() {
+  if (!podMainList || podGettingLatest) return;
+  lv_obj_t* list = podMainList;
+  if (podcastEpisodes) list = podEpisodeList;
+  lv_obj_t* entry = listGetSelectObj(list);
+  podEntryActivate(entry);
+}
+
+//When a podcast entry is selected
+void podcastAction(lv_event_t * event) {
+  lv_obj_t * child = lv_event_get_target(event);  //selected object
+  //Return if already active
+  if (podGettingLatest || podClientActive) {    //Wait for getting latest..
+    listClearSelect(podMainList);
+    return;
+  }                   
+  listSetSelect(child);
+  podEntryActivate(child);
 } 
 
 char* timeAgo(int32_t ago) {
