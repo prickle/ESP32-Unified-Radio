@@ -1,23 +1,7 @@
 #include "decls.h"
 
-#if defined(TWINSCROLL) || defined(PANASCROLL)
-#include <ESP32Encoder.h>
-
-//Button control using two rotary encoders with click push
-
-//Wheel encoders
-ESP32Encoder volEncoder;
-ESP32Encoder funcEncoder;
-
-int64_t volEncOld = 0;
-int64_t funcEncOld = 0;
-bool setBtnOld = false;
-bool modeBtnOld = false;
-bool powerOff = false;
-
-int setBtnTimer = 0;
-
 //Power button pushed
+// Toggles from standby to on
 void powerButton() {
   if (!powerOff) {
     webradioStop();
@@ -36,6 +20,23 @@ void powerButton() {
   }
   powerOff = !powerOff;
 }
+
+#if defined(TWINSCROLL) || defined(PANASCROLL)
+#include <ESP32Encoder.h>
+
+//Button control using two rotary encoders with click push
+
+//Wheel encoders
+ESP32Encoder volEncoder;
+ESP32Encoder funcEncoder;
+
+int64_t volEncOld = 0;
+int64_t funcEncOld = 0;
+bool setBtnOld = false;
+bool modeBtnOld = false;
+bool powerOff = false;
+
+int setBtnTimer = 0;
 
 void prepareEncoders() {
   //ESP32Encoder::useInternalWeakPullResistors=DOWN;
