@@ -1,4 +1,5 @@
 #include "decls.h"
+bool powerOff = false;
 
 //Power button pushed
 // Toggles from standby to on
@@ -34,7 +35,6 @@ int64_t volEncOld = 0;
 int64_t funcEncOld = 0;
 bool setBtnOld = false;
 bool modeBtnOld = false;
-bool powerOff = false;
 
 int setBtnTimer = 0;
 
