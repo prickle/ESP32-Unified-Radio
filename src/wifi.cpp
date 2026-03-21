@@ -548,6 +548,7 @@ int getHour(bool tfh) {
 int getMinute() { time_t tt = getTime(); tm *mt = localtime(&tt); return mt->tm_min; }
 int getDay() { time_t tt = getTime(); tm *mt = localtime(&tt); return mt->tm_mday; }
 int getMonth() { time_t tt = getTime(); tm *mt = localtime(&tt); return mt->tm_mon; }
+int getYear() { time_t tt = getTime(); tm *mt = localtime(&tt); return mt->tm_year + 1900; }
 
 unsigned long utf() { return getTime(); }
 

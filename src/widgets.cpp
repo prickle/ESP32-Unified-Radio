@@ -87,12 +87,14 @@ void VUHandle() {
 typedef struct canvasImg {
   GFXcanvas16* img = 0;
   lv_img_dsc_t img_dsc;
+  uint16_t backCol;
 } canvasImg;
 
-lv_obj_t* createWindSpd(lv_obj_t* parent, int w, int h) {
+lv_obj_t* createWindSpd(lv_obj_t* parent, int w, int h, uint16_t backCol) {
   canvasImg* canvas = new canvasImg;
   lv_obj_t *img = lv_img_create(parent);
   canvas->img = new GFXcanvas16(w, h);
+  canvas->img->fillRect(0, 0, w, h, (canvas->backCol = backCol));
   fillImageDescription(&(canvas->img_dsc), canvas->img);
   lv_obj_set_user_data(img, canvas);
   return img;
@@ -111,7 +113,7 @@ void drawWindSpd(lv_obj_t* obj, float speed, float gust) {
     speed = 0;
   }
   windSpdBuffer->fillRoundRect(0, 0, d, h, 4, WHITE);
-  windSpdBuffer->fillRoundRect(1, 1, d-2, h-2, 4, BLACK);
+  windSpdBuffer->fillRoundRect(1, 1, d-2, h-2, 4, canvas->backCol);
   if (gust > 0.2) {
     float bar = (gust / 10) * (d - 4) + 1;
     windSpdBuffer->fillRoundRect(1, 1, bar, h-2, 4, LTRED);
@@ -123,11 +125,106 @@ void drawWindSpd(lv_obj_t* obj, float speed, float gust) {
   lv_img_set_src(obj, &(canvas->img_dsc));
 }
 
+//--------------------------------------------------------------------
+//Wind direction rose widget
+
+lv_obj_t* createWindDir(lv_obj_t* parent, int w, int h, uint16_t backCol) {
+  canvasImg* canvas = new canvasImg;
+  lv_obj_t *img = lv_img_create(parent);
+  canvas->img = new GFXcanvas16(w, h);
+  canvas->img->fillRect(0, 0, w, h, (canvas->backCol = backCol));
+  fillImageDescription(&(canvas->img_dsc), canvas->img);
+  lv_obj_set_user_data(img, canvas);
+  return img;
+
+}
+
+void drawWindDir(lv_obj_t* obj, int angle, float speed, float gust) {
+  int x = 0, y = 0;
+  canvasImg* canvas = (canvasImg*)lv_obj_get_user_data(obj);
+  if (!canvas) return;
+  GFXcanvas16* windDirBuffer = canvas->img;  
+  if (!windDirBuffer) return;
+  int d = windDirBuffer->width() - 1, r = d / 2;
+  //Draw circle
+  windDirBuffer->fillCircle(x+r, y+r, r-2, WHITE);
+  windDirBuffer->fillCircle(x+r, y+r, r-4, canvas->backCol);  
+  //Draw cardinal marks
+  drawWideLine(windDirBuffer, x, y+r, x+6, y+r, 2, WHITE);
+  drawWideLine(windDirBuffer, x+r, y, x+r, y+6, 2, WHITE);
+  drawWideLine(windDirBuffer, x+d, y+r, x+d-6, y+r, 2, WHITE);
+  drawWideLine(windDirBuffer, x+r, y+d, x+r, y+d-6, 2, WHITE);
+  //Draw the arrow
+  int a = r-2;    //Shrink the arrow a bit
+  int a2 = a/2, a4 = a/4;
+  int points[] = {0, -a, 0, a-a2, -a2, a-a4, a2, a-a4};
+  float rp[8];  //Rotated points
+  float rad = radians(angle), cosa = cosf(rad), sina = sinf(rad);
+  for (int point = 0; point < 7; point+=2) {
+    rp[point] = (points[point]*cosa) - (points[point+1]*sina) + x+r;
+    rp[point+1] = (points[point]*sina) + (points[point+1]*cosa) + y+r;
+  }
+  windDirBuffer->fillTriangle(rp[0],rp[1], rp[2],rp[3], rp[4],rp[5], GREEN);
+  windDirBuffer->fillTriangle(rp[0],rp[1], rp[2],rp[3], rp[6],rp[7], LTGREEN);
+
+  if (gust > 10) gust = 10;
+  if (speed > 10) {
+    //Make bar all red because gust will be > 10
+    speed = 0;
+  }
+  int b = windDirBuffer->height() - 15;
+  windDirBuffer->fillRoundRect(0, b, d, 14, 4, WHITE);
+  windDirBuffer->fillRoundRect(2, b+2, d-4, 10, 4, canvas->backCol);
+  if (gust > 0.2) {
+    float bar = (gust / 10) * (d - 6) + 2;
+    windDirBuffer->fillRoundRect(2, b+2, bar, 10, 4, LTRED);
+  }
+  if (speed > 0.2) {
+    float bar = (speed / 10) * (d - 6) + 2;
+    windDirBuffer->fillRoundRect(2, b+2, bar, 10, 4, LTGREEN);
+  }  
+  lv_img_set_src(obj, &(canvas->img_dsc));
+}
+
+//--------------------------------------------------------------------
+//Moon phase widget
+
+lv_obj_t* createMoon(lv_obj_t* parent, int w, int h, uint16_t backCol) {
+  canvasImg* canvas = new canvasImg;
+  lv_obj_t *img = lv_img_create(parent);
+  canvas->img = new GFXcanvas16(w, h);
+  canvas->img->fillRect(0, 0, w, h, (canvas->backCol = backCol));
+  fillImageDescription(&(canvas->img_dsc), canvas->img);
+  lv_obj_set_user_data(img, canvas);
+  return img;
+}
+
+void drawMoon(lv_obj_t* obj, float ph) {
+  int x0 = 0, y0 = 0;
+  canvasImg* canvas = (canvasImg*)lv_obj_get_user_data(obj);
+  if (!canvas) return;
+  GFXcanvas16* moonBuffer = canvas->img;  
+  if (!moonBuffer) return;
+  int r = moonBuffer->width() / 2 - 1;
+  moonBuffer->fillCircle(x0+r, y0+r, r, canvas->backCol);
+  moonBuffer->drawCircle(x0+r, y0+r, r, WHITE);
+  bool ww = ph > 0.5;
+  if (ww) ph = 1 - ph;
+  for (int y = 0; y <= 2 * r; y++) {
+    float c = -cosf(asinf((float)(r - y) / r)) * r;
+    if (ph > 1) ph -= 1;
+    if (ww) c = -c;
+    int a = (int)(r + c * -(ph * 4 - 1));
+    moonBuffer->drawLine(x0 + r + c, y0 + y, x0 + a, y0 + y, WHITE); 
+  }  
+  lv_img_set_src(obj, &(canvas->img_dsc));
+}
+
+
 //----------------------------------------------------
 // FFT widget
 
 #ifdef FFTMETER
-uint16_t fftBackCol;
 
 //FFT meter
 typedef struct fftImg {
@@ -144,7 +241,7 @@ lv_obj_t* createFFT(lv_obj_t* parent, int w, int h, uint16_t backCol) {
   fftImg* fft = new fftImg;
   lv_obj_t *img = lv_img_create(parent);
   fft->img = new GFXcanvas16(w, h);
-  fft->img->fillRect(0, 0, w, h, (fftBackCol = backCol));
+  fft->img->fillRect(0, 0, w, h, (fft->img->backCol = backCol));
   fft->barWidth = w / FFT_BARS;
   fft->numBars = w / fft->barWidth;
   if (fft->numBars > 64) fft->numBars = 64;
@@ -174,7 +271,7 @@ void drawFFT(lv_obj_t* obj, uint8_t* data) {
     }
     float pk = fft_peak_y[bar];
     if (pk > y) {
-      fftBuffer->drawFastHLine(x, h - pk - 1, fft->barWidth - 1, fftBackCol);
+      fftBuffer->drawFastHLine(x, h - pk - 1, fft->barWidth - 1, fft->img->backCol);
       pk-=0.5;
     }
     else pk = y;
@@ -281,3 +378,33 @@ uint32_t getFFT(size_t index) {
 }
 
 #endif
+
+
+//-------------------------------------------------------------------
+//Drawing tools
+
+//Wide line for bigger impact
+void drawWideLine(GFXcanvas16 *canvas, int x0, int y0, int x1, int y1, float wd, int color) { 
+   int dx = abs(x1-x0), sx = x0 < x1 ? 1 : -1; 
+   int dy = abs(y1-y0), sy = y0 < y1 ? 1 : -1; 
+   int err = dx-dy, e2, x2, y2;                          /* error value e_xy */
+   float ed = dx+dy == 0 ? 1 : sqrt((float)dx*dx+(float)dy*dy);
+   
+   for (wd = (wd+1)/2; ; ) {                                   /* pixel loop */
+      canvas->drawPixel(x0,y0,color);
+      e2 = err; x2 = x0;
+      if (2*e2 >= -dx) {                                           /* x step */
+         for (e2 += dy, y2 = y0; e2 < ed*wd && (y1 != y2 || dx > dy); e2 += dx)
+            canvas->drawPixel(x0, y2 += sy, color);
+         if (x0 == x1) break;
+         e2 = err; err -= dy; x0 += sx; 
+      } 
+      if (2*e2 <= dy) {                                            /* y step */
+         for (e2 = dx-e2; e2 < ed*wd && (x1 != x2 || dx < dy); e2 += dy)
+            canvas->drawPixel(x2 += sx, y0, color);
+         if (y0 == y1) break;
+         err += dx; y0 += sy; 
+      }
+   }
+}
+

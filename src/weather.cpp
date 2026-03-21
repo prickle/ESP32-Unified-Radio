@@ -16,8 +16,8 @@ const unsigned long  weatherPostingInterval = 30L*60L*1000L; // Delay between up
 uint16_t winddir_now;
 float pressure_now;
 float humidity_now;
-int sunrise_now;
-int sunset_now;
+time_t sunrise_now;
+time_t sunset_now;
 
 const char* shortDOW[] = {"???", "SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
 const char* shortMonth[] = {"JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC" };
@@ -29,22 +29,28 @@ const char* windDirName[] = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
 
 
 static lv_obj_t * weatherContainer;
+#ifndef BIGWEATHER
 static lv_obj_t * weatherBtn;
 static lv_obj_t * weatherBtnLbl;
+static void weatherBtnAction(lv_event_t * event);
+#endif
+static lv_obj_t * mainIcon;
+static lv_obj_t * mainLabel;
+static lv_obj_t * windImg;
+static lv_obj_t * windLabel;
+static lv_obj_t * tempLabel;
+static lv_obj_t * todayLabel;
+static lv_obj_t * sunLbl;
+static lv_obj_t * moonLbl;
+static lv_obj_t * moonImg;
 
-//static lv_obj_t * mainIcon;
-//static lv_obj_t * mainLabel;
-//static lv_obj_t * windIcon;
-//static lv_obj_t * windImg;
-//static lv_obj_t * windLabel;
-//static lv_obj_t * tempLabel;
-//static lv_obj_t * todayLabel;
-//static lv_obj_t * moonImg;
+#ifndef BIGWEATHER
 static lv_obj_t * day0Lbl;
 static lv_obj_t * day0Img;
 static lv_obj_t * day0Detail;
 #if (TFT_WIDTH == 480)
 static lv_obj_t * day0Wind;
+#endif
 #endif
 static lv_obj_t * day1Lbl;
 static lv_obj_t * day1Img;
@@ -62,16 +68,14 @@ static lv_obj_t * day4Lbl;
 static lv_obj_t * day4Img;
 static lv_obj_t * day4Detail;
 static lv_obj_t * day4Wind;
-//static lv_obj_t * sunLbl;
-//static lv_obj_t * moonLbl;
 
-static void weatherBtnAction(lv_event_t * event);
 void weatherGrownAction(lv_anim_t * a);
 void weatherShrunkAction(lv_anim_t * a);
 bool weatherRequest();
 uint8_t parseWeather(int c);
 void drawWeather();
 uint8_t weekday(time_t t);
+const lv_img_dsc_t* getIconImage(char* name);
 const lv_img_dsc_t* getSmallIconImage(char* name);
 int getNextDayIndex(void);
 void drawForecast(uint8_t dayIndex, lv_obj_t* dayLbl, lv_obj_t* dayImg, lv_obj_t* dayDetail, lv_obj_t* dayWind);
@@ -116,8 +120,8 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   weatherContainer = lv_obj_create(parent);
   lv_obj_add_style(weatherContainer, &style_groupbox, LV_PART_MAIN);
   lv_obj_clear_flag(weatherContainer, LV_OBJ_FLAG_SCROLLABLE);
+#ifndef BIGWEATHER
   lv_obj_add_event_cb(weatherContainer, weatherBtnAction, LV_EVENT_CLICKED, NULL);
-  //lv_cont_set_fit(infoContainer, LV_FIT_NONE);              //Fit the size to the content
 #if (TFT_WIDTH == 480)
   if (weatherExpanded) lv_obj_set_size(weatherContainer, 460, 150);
   else lv_obj_set_size(weatherContainer, 118, 150); 
@@ -125,39 +129,6 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   if (weatherExpanded) lv_obj_set_size(weatherContainer, 312, 108);
   else lv_obj_set_size(weatherContainer, 84, 108);
 #endif
-
-/*  todayLabel = lv_label_create(mainWindow);
-  lv_obj_add_style(todayLabel, &style_biggerfont, LV_PART_MAIN);
-  lv_obj_add_style(todayLabel, &style_yellow, LV_PART_MAIN);
-  lv_obj_set_size(todayLabel, 308, 18);
-  lv_obj_align_to(todayLabel, infoContainer, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
-  lv_obj_set_style_text_align(todayLabel, LV_TEXT_ALIGN_CENTER, 0);
-  lv_label_set_text(todayLabel, "");
-
-  mainIcon = lv_img_create(mainWindow);
-  lv_obj_set_size(mainIcon, 100, 100);
-  lv_obj_align_to(mainIcon, todayLabel, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 2);         //Align next to the slider
-  tempLabel = lv_label_create(mainWindow);
-  lv_obj_add_style(tempLabel, &style_biggestfont, LV_PART_MAIN);
-  lv_obj_set_style_text_align(tempLabel, LV_TEXT_ALIGN_CENTER, 0);
-  lv_obj_set_size(tempLabel, 120, 50);
-  lv_obj_align_to(tempLabel, mainIcon, LV_ALIGN_OUT_RIGHT_TOP, 0, 0);
-  lv_label_set_text(tempLabel, "");
-  mainLabel = lv_label_create(mainWindow);
-  lv_obj_add_style(mainLabel, &style_biggerfont, LV_PART_MAIN);
-  lv_obj_set_size(mainLabel, 120, 50);
-  lv_obj_set_style_text_align(mainLabel, LV_TEXT_ALIGN_CENTER, 0);
-  lv_obj_align_to(mainLabel, tempLabel, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 0);
-  lv_label_set_text(mainLabel, "");
-  
-  windImg = createWindDir(mainWindow, 50, 70);
-  lv_obj_align_to(windImg, tempLabel, LV_ALIGN_OUT_RIGHT_TOP, 20, 0);         //Align next to the slider
-  windLabel = lv_label_create(mainWindow);
-  lv_obj_add_style(windLabel, &style_biggerfont, LV_PART_MAIN);
-  lv_obj_set_style_text_align(windLabel, LV_TEXT_ALIGN_CENTER, 0);
-  lv_obj_align_to(windLabel, windImg, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
-  lv_label_set_text(windLabel, "");
-*/
   day0Lbl = lv_label_create(weatherContainer);
   lv_obj_add_style(day0Lbl, &style_font, LV_PART_MAIN);
   lv_obj_add_style(day0Lbl, &style_yellow, LV_PART_MAIN);
@@ -180,16 +151,56 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   day0Wind = createWindSpd(weatherContainer, 50, 10);
   lv_obj_align_to(day0Wind, day0Detail, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
 #endif
+#else 
+  lv_obj_set_size(weatherContainer, 312, 326);
+  todayLabel = lv_label_create(weatherContainer);
+  lv_obj_add_style(todayLabel, &style_biggestfont, LV_PART_MAIN);
+  lv_obj_add_style(todayLabel, &style_yellow, LV_PART_MAIN);
+  lv_obj_set_size(todayLabel, 308, 20);
+  lv_obj_set_pos(todayLabel, 2, 2);
+  lv_obj_set_style_text_align(todayLabel, LV_TEXT_ALIGN_CENTER, 0);
+  lv_label_set_text(todayLabel, "");
+
+  mainIcon = lv_img_create(weatherContainer);
+  lv_obj_set_size(mainIcon, 100, 100);
+  lv_obj_align_to(mainIcon, todayLabel, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 2);         //Align next to the slider
+  tempLabel = lv_label_create(weatherContainer);
+  lv_obj_add_style(tempLabel, &style_biggestfont, LV_PART_MAIN);
+  lv_obj_set_style_text_align(tempLabel, LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_set_size(tempLabel, 120, 50);
+  lv_obj_align_to(tempLabel, mainIcon, LV_ALIGN_OUT_RIGHT_TOP, 0, 0);
+  lv_label_set_text(tempLabel, "");
+  mainLabel = lv_label_create(weatherContainer);
+  lv_obj_add_style(mainLabel, &style_biggerfont, LV_PART_MAIN);
+  lv_obj_set_size(mainLabel, 120, 50);
+  lv_obj_set_style_text_align(mainLabel, LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_align_to(mainLabel, tempLabel, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 0);
+  lv_label_set_text(mainLabel, "");
+  
+  windImg = createWindDir(weatherContainer, 50, 70, lv_color_hex(0x202020).full);
+  lv_obj_align_to(windImg, tempLabel, LV_ALIGN_OUT_RIGHT_TOP, 15, 0);         //Align next to the slider
+  windLabel = lv_label_create(weatherContainer);
+  lv_obj_add_style(windLabel, &style_biggerfont, LV_PART_MAIN);
+  lv_obj_set_style_text_align(windLabel, LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_align_to(windLabel, windImg, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
+  lv_label_set_text(windLabel, "");
+
+#endif
+
   day1Lbl = lv_label_create(weatherContainer);
   lv_obj_add_style(day1Lbl, &style_font, LV_PART_MAIN);
   lv_obj_set_style_text_align(day1Lbl, LV_TEXT_ALIGN_CENTER, 0);
   lv_label_set_text(day1Lbl, "");
   day1Img = lv_img_create(weatherContainer);
   lv_obj_set_size(day1Img, 50, 50);
+#ifndef BIGWEATHER
 #if (TFT_WIDTH == 480)
   lv_obj_set_pos(day1Img, 128, 25);
 #else
   lv_obj_set_pos(day1Img, 76, 15);
+#endif
+#else
+  lv_obj_set_pos(day1Img, 15, 150);  
 #endif
   lv_obj_align_to(day1Lbl, day1Img, LV_ALIGN_OUT_TOP_MID, 0, 0);         //Align next to the slider
   day1Detail = lv_label_create(weatherContainer);
@@ -197,8 +208,8 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   lv_obj_set_style_text_align(day1Detail, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_align_to(day1Detail, day1Img, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
   lv_label_set_text(day1Detail, "");
-#if (TFT_WIDTH == 480)  
-  day1Wind = createWindSpd(weatherContainer, 50, 10);
+#if (TFT_WIDTH == 480 || defined(BIGWEATHER))  
+  day1Wind = createWindSpd(weatherContainer, 50, 10, lv_color_hex(0x101010).full);
   lv_obj_align_to(day1Wind, day1Detail, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
 #endif
 
@@ -208,10 +219,14 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   lv_label_set_text(day2Lbl, "");
   day2Img = lv_img_create(weatherContainer);
   lv_obj_set_size(day2Img, 50, 50);
+#ifndef BIGWEATHER
 #if (TFT_WIDTH == 480)
   lv_obj_set_pos(day2Img, 206, 25);
 #else
   lv_obj_set_pos(day2Img, 132, 15);
+#endif
+#else
+  lv_obj_set_pos(day2Img, 93, 150);
 #endif
   lv_obj_align_to(day2Lbl, day2Img, LV_ALIGN_OUT_TOP_MID, 0, 0);         //Align next to the slider
   day2Detail = lv_label_create(weatherContainer);
@@ -219,8 +234,8 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   lv_obj_set_style_text_align(day2Detail, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_align_to(day2Detail, day2Img, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
   lv_label_set_text(day2Detail, "");
-#if (TFT_WIDTH == 480)  
-  day2Wind = createWindSpd(weatherContainer, 50, 10);
+#if (TFT_WIDTH == 480 || defined(BIGWEATHER))  
+  day2Wind = createWindSpd(weatherContainer, 50, 10, lv_color_hex(0x101010).full);
   lv_obj_align_to(day2Wind, day2Detail, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
 #endif
 
@@ -230,10 +245,14 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   lv_label_set_text(day3Lbl, "");
   day3Img = lv_img_create(weatherContainer);
   lv_obj_set_size(day3Img, 50, 50);
+#ifndef BIGWEATHER
 #if (TFT_WIDTH == 480)
   lv_obj_set_pos(day3Img, 284, 25);
 #else
   lv_obj_set_pos(day3Img, 188, 15);
+#endif
+#else
+  lv_obj_set_pos(day3Img, 171, 150);
 #endif
   lv_obj_align_to(day3Lbl, day3Img, LV_ALIGN_OUT_TOP_MID, 0, 0);         //Align next to the slider
   day3Detail = lv_label_create(weatherContainer);
@@ -241,8 +260,8 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   lv_obj_set_style_text_align(day3Detail, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_align_to(day3Detail, day3Img, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
   lv_label_set_text(day3Detail, "");
-#if (TFT_WIDTH == 480)  
-  day3Wind = createWindSpd(weatherContainer, 50, 10);
+#if (TFT_WIDTH == 480 || defined(BIGWEATHER))  
+  day3Wind = createWindSpd(weatherContainer, 50, 10, lv_color_hex(0x101010).full);
   lv_obj_align_to(day3Wind, day3Detail, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
 #endif
 
@@ -252,10 +271,14 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   lv_label_set_text(day4Lbl, "");
   day4Img = lv_img_create(weatherContainer);
   lv_obj_set_size(day4Img, 50, 50);
+#ifndef BIGWEATHER
 #if (TFT_WIDTH == 480)
   lv_obj_set_pos(day4Img, 362, 25);
 #else
   lv_obj_set_pos(day4Img, 244, 15);
+#endif
+#else
+  lv_obj_set_pos(day4Img, 249, 150);
 #endif
   lv_obj_align_to(day4Lbl, day4Img, LV_ALIGN_OUT_TOP_MID, 0, 0);         //Align next to the slider
   day4Detail = lv_label_create(weatherContainer);
@@ -263,26 +286,27 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   lv_obj_set_style_text_align(day4Detail, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_align_to(day4Detail, day4Img, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
   lv_label_set_text(day4Detail, "");
-#if (TFT_WIDTH == 480)  
-  day4Wind = createWindSpd(weatherContainer, 50, 10);
+#if (TFT_WIDTH == 480 || defined(BIGWEATHER))  
+  day4Wind = createWindSpd(weatherContainer, 50, 10, lv_color_hex(0x101010).full);
   lv_obj_align_to(day4Wind, day4Detail, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
 #endif
 
-/*  sunLbl = lv_label_create(mainWindow);
+#ifdef BIGWEATHER
+  sunLbl = lv_label_create(weatherContainer);
   lv_obj_add_style(sunLbl, &style_font, LV_PART_MAIN);
   //lv_obj_set_style_text_align(sunLbl, LV_TEXT_ALIGN_CENTER, 0);
-  lv_obj_set_pos(sunLbl, 15, 390);
+  lv_obj_set_pos(sunLbl, 15, 260);
   lv_label_set_text(sunLbl, "");
  
-  moonImg = createMoon(mainWindow, 50, 50);
-  lv_obj_set_pos(moonImg, 130, 385);
+  moonImg = createMoon(weatherContainer, 50, 50, lv_color_hex(0x101010).full);
+  lv_obj_set_pos(moonImg, 130, 255);
 
-  moonLbl = lv_label_create(mainWindow);
+  moonLbl = lv_label_create(weatherContainer);
   lv_obj_add_style(moonLbl, &style_font, LV_PART_MAIN);
   //lv_obj_set_style_text_align(moonLbl, LV_TEXT_ALIGN_CENTER, 0);
-  lv_obj_set_pos(moonLbl, 190, 390);
-  lv_label_set_text(moonLbl, "");*/
-
+  lv_obj_set_pos(moonLbl, 190, 260);
+  lv_label_set_text(moonLbl, "");
+#else
   //Expand button on top
   weatherBtn = lv_btn_create(weatherContainer);
   if (weatherExpanded) {
@@ -311,10 +335,11 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   if (weatherExpanded) lv_label_set_text(weatherBtnLbl, LV_SYMBOL_LEFT);
   else lv_label_set_text(weatherBtnLbl, LV_SYMBOL_RIGHT);
   lv_obj_move_background(weatherContainer);    
-
+#endif
   return weatherContainer;
 }
 
+#ifndef BIGWEATHER
 //Weather button clicked
 static void weatherBtnAction(lv_event_t * event) {
   lv_anim_t a;
@@ -381,7 +406,7 @@ void weatherShrunkAction(lv_anim_t * a) {
   lv_label_set_text(weatherBtnLbl, LV_SYMBOL_RIGHT);
   lv_obj_move_background(weatherContainer);    
 }
-
+#endif
 
 //Called from wifiHandle on first connect
 void weatherBegin() {
@@ -406,72 +431,76 @@ void drawWeather() {
   //tmElements_t nowtime;
   //breakTime(rtc.getEpoch(), nowtime);
   char temp[256];
-/*
+#ifdef BIGWEATHER
   //Day of week
-  snprintf(temp, 255, "%s %d %s %d", longDOW[weekday(rtc.getEpoch())], nowtime.Day, longMonth[nowtime.Month - 1], tmYearToCalendar(nowtime.Year)); 
+  snprintf(temp, 255, "%s %d %s %d", longDOW[weekday(utf())], getDay(), longMonth[getMonth()], getYear()); 
   lv_label_set_text(todayLabel, temp);
-*/
+#else
 #if (TFT_WIDTH == 480)
   snprintf(temp, 255, "%s %d %s", shortDOW[weekday(utf())], getDay(), shortMonth[getMonth()]); 
 #else
   snprintf(temp, 255, "%d %s", getDay(), shortMonth[getMonth()]); 
 #endif
   lv_label_set_text(day0Lbl, temp);
+#endif
   //Main weather condition icon
   if (utf() > sunrise_now && utf() < sunset_now) forecast[0].icon[2] = 'd';
   else forecast[0].icon[2] = 'n';
+#ifdef BIGWEATHER
+  lv_img_set_src(mainIcon, getIconImage(forecast[0].icon));
+  lv_obj_align_to(mainIcon, todayLabel, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);         //Align next to the slider
+#else
   lv_img_set_src(day0Img, getSmallIconImage(forecast[0].icon));
   lv_obj_align_to(day0Lbl, day0Img, LV_ALIGN_OUT_TOP_MID, 0, 0); 
-  //lv_obj_align_to(mainIcon, todayLabel, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);         //Align next to the slider
-
   snprintf(temp, 255, "%s\n%d" LV_SYMBOL_DEGREE, forecast[0].main, (int)(forecast[0].temp + 0.5));
   lv_label_set_text(day0Detail, temp);
+#endif
 
+#ifdef BIGWEATHER
   //Temperature and humidity label
-/*  snprintf(temp, 255, "%d C\n%d%%", (int)(forecast[0].temp + 0.5), (int)humidity_now); 
+  snprintf(temp, 255, "%d C\n%d%%", (int)(forecast[0].temp + 0.5), (int)humidity_now); 
   lv_label_set_text(tempLabel, temp);
   lv_obj_align_to(tempLabel, mainIcon, LV_ALIGN_OUT_RIGHT_TOP, 0, 0);
 
   //Main weather description and pressure
   snprintf(temp, 255, "%s\n%d hPa", forecast[0].main, (int)pressure_now); 
   lv_label_set_text(mainLabel, temp);
-  lv_obj_align_to(mainLabel, tempLabel, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 0);*/
+  lv_obj_align_to(mainLabel, tempLabel, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 0);
 
   //Wind rose
-/*  int windAngle = (winddir_now + 22.5) / 45;
+  int windAngle = (winddir_now + 22.5) / 45;
   if (windAngle > 7) windAngle = 0;
-  drawWindDir(winddir_now, forecast[0].speed, forecast[0].gust);
-  lv_obj_align_to(windImg, tempLabel, LV_ALIGN_OUT_RIGHT_TOP, 20, 0);         //Align next to the slider
+  drawWindDir(windImg, winddir_now, forecast[0].speed, forecast[0].gust);
+  lv_obj_align_to(windImg, tempLabel, LV_ALIGN_OUT_RIGHT_TOP, 15, 0);         //Align next to the slider
 
   //Wind rose label
   snprintf(temp, 255, "%d m/s %s", (int)forecast[0].speed, windDirName[windAngle]); 
   lv_label_set_text(windLabel, temp);
   lv_obj_align_to(windLabel, windImg, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
-*/
+
+#else
   lv_obj_align_to(day0Detail, day0Img, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
 #if (TFT_WIDTH == 480)  
   drawWindSpd(day0Wind, forecast[0].speed, forecast[0].gust);
   lv_obj_align_to(day0Wind, day0Detail, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
 #endif
-/*
+#endif
+#ifdef BIGWEATHER
   //Sunrise and sunset
-  tmElements_t sunrise, sunset;
-  breakTime(sunrise_now, sunrise);
-  breakTime(sunset_now, sunset);
-  snprintf(temp, 255, "Sunrise %d:%02d\nSunset %d:%02d", sunrise.Hour, sunrise.Minute, sunset.Hour, sunset.Minute); 
+  snprintf(temp, 255, "Sunrise %d:%02d\nSunset %d:%02d", localtime(&sunrise_now)->tm_hour, localtime(&sunrise_now)->tm_min, localtime(&sunset_now)->tm_hour, localtime(&sunset_now)->tm_min); 
   lv_label_set_text(sunLbl, temp);
 
   //Moon
   uint8_t illum = 0;
   float moon = moonDay(0, &illum);    //(0) is now
-  drawMoon(1 - moon);
+  drawMoon(moonImg, 1 - moon);
 
   //Moon label
   float days = ((1 - moon) + 0.5) * 29.53;
   if (days >= 29.53) days -= 29.53;
   snprintf(temp, 255, "%d%% Luminous\n%d Days to full", illum, (int)days); 
   lv_label_set_text(moonLbl, temp);
- */ 
+#endif
   //Forecast
   int8_t dayIndex = getNextDayIndex();
   drawForecast(dayIndex, day1Lbl, day1Img, day1Detail, day1Wind);  
@@ -514,10 +543,24 @@ void drawForecast(uint8_t dayIndex, lv_obj_t* dayLbl, lv_obj_t* dayImg, lv_obj_t
 #endif
   lv_label_set_text(dayDetail, detail);
   lv_obj_align_to(dayDetail, dayImg, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
-#if (TFT_WIDTH == 480)  
+#if (TFT_WIDTH == 480 || defined(BIGWEATHER))  
   drawWindSpd(dayWind, forecast[dayIndex + 4].speed, forecast[dayIndex + 4].gust);
   lv_obj_align_to(dayWind, dayDetail, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
 #endif
+}
+
+const lv_img_dsc_t* getIconImage(char* name) {
+  if (strcmp(name, "01d") == 0) return &clear_day;
+  else if (strcmp(name, "01n") == 0) return &clear_night;
+  else if (strcmp(name, "02d") == 0 || strcmp(name, "03d") == 0) return &partly_cloudy_day;
+  else if (strcmp(name, "02n") == 0 || strcmp(name, "03n") == 0) return &partly_cloudy_night;
+  else if (strcmp(name, "04d") == 0 || strcmp(name, "04n") == 0) return &cloudy;
+  else if (strcmp(name, "09d") == 0 || strcmp(name, "09n") == 0) return &lightRain;
+  else if (strcmp(name, "10d") == 0 || strcmp(name, "10n") == 0) return &rain;
+  else if (strcmp(name, "11d") == 0 || strcmp(name, "11n") == 0) return &thunderstorm;
+  else if (strcmp(name, "13d") == 0 || strcmp(name, "13n") == 0) return &snow;
+  else if (strcmp(name, "50d") == 0 || strcmp(name, "50n") == 0) return &fog;
+  else return &unknown;
 }
 
 const lv_img_dsc_t* getSmallIconImage(char* name) {
@@ -791,7 +834,6 @@ double moon_position(double j, double ls)
   return l;
 }
 
-/*
 uint16_t moon_phase(int year, int month, int day, double hour, uint8_t* illum)
 {
   double j = Julian(year, month, (double)day + hour / 24.0) - 2444238.5;
@@ -806,12 +848,12 @@ uint16_t moon_phase(int year, int month, int day, double hour, uint8_t* illum)
 }
 
 float moonDay(time_t date, uint8_t* illum) {
-  if (date == 0) date = rtc.getEpoch();
-  tmElements_t mtt;
-  breakTime(date, mtt);
-  return moon_phase(tmYearToCalendar(mtt.Year), mtt.Month, mtt.Day, mtt.Hour, illum) / 360.0;
+  if (date == 0) date = utf();
+  tm *mtt;
+  mtt = localtime(&date);
+  return moon_phase(mtt->tm_year + 1900, mtt->tm_mon, mtt->tm_mday, mtt->tm_hour, illum) / 360.0;
 }
-*/
+
 
 //given unix time t, returns day of week Sun-Sat as an integer 1-7
 uint8_t weekday(time_t t) {

@@ -216,6 +216,8 @@
 #define LVGL_BUFF_SIZE  40                   //even number please..
 #define NUM_PRESETS 16
 #define PRESET_HEIGHT 70
+//Portrait display
+#define BIGWEATHER
 
 //NXP/TEF6686 Radio module
 #define NXP6686
@@ -637,12 +639,18 @@ void setupWeather();
 void weatherHandle();
 bool weatherClientHandle();
 void createWeather();
+float moonDay(time_t date, uint8_t* illum);
 
 //widgets.cpp
 lv_obj_t* createVU(lv_obj_t* parent, int w, int h, uint16_t backCol);
 void drawVU(int16_t l, int16_t r);
-lv_obj_t* createWindSpd(lv_obj_t* parent, int w, int h);
+lv_obj_t* createWindSpd(lv_obj_t* parent, int w, int h, uint16_t backCol);
 void drawWindSpd(lv_obj_t* obj, float speed, float gust);
+lv_obj_t* createWindDir(lv_obj_t* parent, int w, int h, uint16_t backCol);
+void drawWindDir(lv_obj_t* obj, int angle, float speed, float gust);
+lv_obj_t* createMoon(lv_obj_t* parent, int w, int h, uint16_t backCol);
+void drawMoon(lv_obj_t* obj, float ph);
+void drawWideLine(GFXcanvas16 *canvas, int x0, int y0, int x1, int y1, float wd, int color);
 #ifdef FFTMETER
 lv_obj_t* createFFT(lv_obj_t* parent, int w, int h, uint16_t backCol);
 void drawFFT(lv_obj_t* obj, uint8_t* data);
@@ -667,6 +675,7 @@ int getHour(bool tfh);
 int getMinute();
 int getDay();
 int getMonth();
+int getYear();
 void setupTLS();
 String urlencode(String url);
 void wifiTerminalSetup();
