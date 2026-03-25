@@ -157,7 +157,7 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   lv_obj_add_style(todayLabel, &style_biggestfont, LV_PART_MAIN);
   lv_obj_add_style(todayLabel, &style_yellow, LV_PART_MAIN);
   lv_obj_set_size(todayLabel, 308, 20);
-  lv_obj_set_pos(todayLabel, 2, 2);
+  lv_obj_set_pos(todayLabel, 0, 2);
   lv_obj_set_style_text_align(todayLabel, LV_TEXT_ALIGN_CENTER, 0);
   lv_label_set_text(todayLabel, "");
 

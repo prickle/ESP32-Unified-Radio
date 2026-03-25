@@ -23,7 +23,9 @@ bool ScreenSaverActive = false;
 void LVdispFlush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p );
 static void LVtickHandler(void);
 void LVinputRead(lv_indev_drv_t * drv, lv_indev_data_t*data);
-
+#if LV_USE_LOG != 0
+void LVlogPrint(const char * buf);
+#endif
 
 //Display driver
 void initLVGL()  {
@@ -179,6 +181,32 @@ void LVinputRead(lv_indev_drv_t * drv, lv_indev_data_t*data) {
   x = px;
   y = py;
   touched = rz;
+}
+
+#elif defined(TOUCH_VOLUME)
+//My touchscreen is noisy and needs extra conditioning
+//that's an understatement, now using an arduino to read the touch, see "touch" 
+void LVinputRead(lv_indev_drv_t * drv, lv_indev_data_t*data)
+{
+  //uint16_t rx, ry;
+  int16_t x, y;
+  static int16_t lx = 0, ly = 0;
+  static bool touched = false;
+  data->state = tz? LV_INDEV_STATE_PR : LV_INDEV_STATE_REL;
+  if (tz) screenSaverInteraction();
+  // Scale from ~0->4000 to tft.width using the calibration #'s
+  x = map(tx, 0, 1024, 0, tft.width() - 1);
+  y = map(ty, 0, 1024, 0, tft.height() - 1);
+  if (!tz && touched) {
+    data->point.x = lx;
+    data->point.y = ly;
+  } else {
+    data->point.x = x;
+    data->point.y = y;
+  }
+  lx = x;
+  ly = y;
+  touched = tz;
 }
 
 #else

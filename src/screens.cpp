@@ -151,6 +151,8 @@ void screenInit(void) {
   lv_style_init(&style_wp);
 #ifdef THEME_BLUE
   lv_style_set_bg_color(&style_wp, lv_color_hex(0x707070));
+#elif defined(THEME_HIVIS)
+  lv_style_set_bg_color(&style_wp, lv_color_black());
 #else
   lv_style_set_bg_color(&style_wp, lv_color_hex(0x404040));
 #endif
@@ -181,6 +183,8 @@ void screenInit(void) {
   lv_style_set_text_font(&style_bigfont_orange, &lv_font_mymontserrat_20);
 #ifdef THEME_BLUE
   lv_style_set_text_color(&style_bigfont_orange, lv_palette_main(LV_PALETTE_LIGHT_BLUE));
+#elif defined(THEME_HIVIS)
+  lv_style_set_text_color(&style_bigfont_orange, lv_color_hex(0x00ffff));
 #else
   lv_style_set_text_color(&style_bigfont_orange, lv_color_hex(0xff1010));
 #endif
@@ -200,7 +204,11 @@ void screenInit(void) {
   lv_style_init(&style_win);
   lv_style_set_text_font(&style_win, &lv_font_mymontserrat_20);
   lv_style_set_bg_opa(&style_win, LV_OPA_TRANSP);
+#ifdef THEME_HIVIS
+  lv_style_set_bg_color(&style_win, lv_color_black());
+#else
   lv_style_set_bg_color(&style_win, lv_color_hex(0x101010));
+#endif
   lv_style_set_border_width(&style_win, 0);
   lv_style_set_pad_top(&style_win, 0);
   lv_style_set_pad_bottom(&style_win, 0);
@@ -211,8 +219,12 @@ void screenInit(void) {
   //lv_style_set_text_font(&style_list, &lv_font_montserrat_16);
   lv_style_init(&style_listsel);
   lv_style_set_radius(&style_listsel, 6);
-  lv_style_set_bg_opa(&style_listsel, LV_OPA_70);
   lv_style_set_bg_color(&style_listsel, lv_color_hex(0x0));//487fb7);
+#ifdef THEME_HIVIS
+  lv_style_set_bg_opa(&style_listsel, LV_OPA_100);
+#else  
+  lv_style_set_bg_opa(&style_listsel, LV_OPA_70);
+#endif
   lv_style_set_border_width(&style_listsel, 2);
 #ifdef THEME_BLUE  
   lv_style_set_border_color(&style_listsel, lv_color_hex(0x487fb7));

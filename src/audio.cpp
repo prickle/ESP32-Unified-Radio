@@ -107,6 +107,7 @@ void webradioSetup() {
              16,                   // priority of the task 
              &radioTaskHandle,    // Task handle to keep track of created task 
                0);                  // pin task to core 0 
+
 }
 
 //Command the webradio to delete itself, try to recover memory.
@@ -649,7 +650,9 @@ void radioTask( void * pvParameters ) {
   static unsigned long lastms = 0;
   struct audioMessage audioRxTaskMessage;
   struct audioMessage audioTxTaskMessage;
+
   if (!audio) audio = new Audio();
+  //Serial.println("Got to here..");
   audio->setConnectionTimeout(1000, 4000);
   //Start message
   audioTxTaskMessage.cmd = WR_START;
@@ -657,7 +660,7 @@ void radioTask( void * pvParameters ) {
   audioTxTaskMessage.ret = setOutput(ADCFound);            //If we found the ADC, we assume the external DAC is also present
 #else
   audioTxTaskMessage.ret = true;  //External output only
-  audio->setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT);
+  audio->setPinout(-1, -1, -1);//I2S_BCLK, I2S_LRC, I2S_DOUT);
 #endif
 #ifdef FORCE_MONO
   audio->forceMono(true);

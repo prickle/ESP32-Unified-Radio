@@ -182,7 +182,6 @@ Audio::Audio(bool internalDAC /* = false */, uint8_t channelEnabled /* = I2S_DAC
     m_i2s_config.tx_desc_auto_clear   = true;   // new in V1.0.1
     m_i2s_config.fixed_mclk           = I2S_PIN_NO_CHANGE;
 
-
     if (internalDAC)  {
 
         #ifdef CONFIG_IDF_TARGET_ESP32  // ESP32S3 has no DAC

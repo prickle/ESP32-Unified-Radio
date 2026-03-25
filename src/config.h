@@ -129,6 +129,16 @@ extern bool battCharging;           //when charging
 
 //extern lv_font_t digital;
 
+#ifdef TOUCH_VOLUME
+//External Touchscreen
+extern int tx, ty; 
+extern bool tz;
+
+//External Volume control
+extern int volPot;
+#endif
+
+
 //NXP6686
 #define NXPTABLE_FMIN 0
 #define NXPTABLE_FMAX 1
@@ -829,6 +839,55 @@ public:
       _panel_instance.setTouch(&_touch_instance);  // タッチスクリーンをパネルにセットします。
     }
     setPanel(&_panel_instance); // 使用するパネルをセットします。
+  }
+};
+#endif
+
+#ifdef TFT_ILI9488_PAR
+//LovyanGFX Display Class Config
+class LGFX : public lgfx::LGFX_Device {
+  lgfx::Panel_ILI9488 _panel_instance;  // ILI9488
+  lgfx::Bus_Parallel8 _bus_instance;    // MCU8080 8B
+public:
+  LGFX(void) {
+    //Bus
+    { auto cfg = _bus_instance.config();
+      cfg.freq_write = 20000000;    
+      cfg.pin_wr = TFT_WR;             
+      cfg.pin_rd = TFT_RD;             
+      cfg.pin_rs = TFT_DC;              
+      // LCD data interface, 8bit MCU (8080)
+      cfg.pin_d0 = TFT_D0;              
+      cfg.pin_d1 = TFT_D1;             
+      cfg.pin_d2 = TFT_D2;              
+      cfg.pin_d3 = TFT_D3;              
+      cfg.pin_d4 = TFT_D4;             
+      cfg.pin_d5 = TFT_D5;             
+      cfg.pin_d6 = TFT_D6;             
+      cfg.pin_d7 = TFT_D7;             
+      _bus_instance.config(cfg);   
+      _panel_instance.setBus(&_bus_instance);      
+    }
+    //LCD Panel
+    { auto cfg = _panel_instance.config();    
+      cfg.pin_cs           =    TFT_CS;  
+      cfg.pin_rst          =    TFT_RST;  
+      cfg.pin_busy         =    -1; 
+      cfg.panel_width      =   320;
+      cfg.panel_height     =   480;
+      cfg.offset_x         =     0;
+      cfg.offset_y         =     0;
+      cfg.offset_rotation  =     TFT_ROTATION;
+      cfg.dummy_read_pixel =     8;
+      cfg.dummy_read_bits  =     1;
+      cfg.readable         =  true;
+      cfg.invert           =  false;
+      cfg.rgb_order        = false;
+      cfg.dlen_16bit       = false;
+      cfg.bus_shared       = false;
+      _panel_instance.config(cfg);
+    }
+    setPanel(&_panel_instance); 
   }
 };
 #endif
