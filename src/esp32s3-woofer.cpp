@@ -108,6 +108,8 @@ void setup(void)
 #ifdef BATTERYMON
   resetAmpHours();
 #endif
+  //Force factory mode
+  //activateFactoryMode();
 }
 
 //Just call the handlers for each feature
@@ -116,26 +118,26 @@ void loop() {
 #ifdef MONITOR_PORT
   wifiTerminalHandle();
 #endif
-  //terminalHandle();
-  //screenSaverHandle();
-  //wifiHandle();
-  //webradioHandle();
-  //NTPHandle();
-  //FTPHandle();
+  terminalHandle();
+  screenSaverHandle();
+  wifiHandle();
+  webradioHandle();
+  NTPHandle();
+  FTPHandle();
 #ifdef BATTERYMON
   ADCHandle();
 #endif
-  //timeHandle();
-  //searchHandle();
-  //podcastHandle();
-  //artHandle();
+  timeHandle();
+  searchHandle();
+  podcastHandle();
+  artHandle();
 #ifdef VUMETER
   VUHandle();
 #endif
-  //passwordHandle();
-  //weatherHandle();
-  //infoLabelHandle();
-  //DLNAHandle();
+  passwordHandle();
+  weatherHandle();
+  infoLabelHandle();
+  DLNAHandle();
 #ifdef USE_OTA  
   ArduinoOTA.handle();
 #endif
@@ -151,7 +153,7 @@ void loop() {
 #ifdef TOUCH_VOLUME
   touchHandle();
 #endif
-  //weatherClientHandle();
+  weatherClientHandle();
 #ifdef NXP6686
   NXPHandle();
 #endif

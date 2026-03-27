@@ -262,7 +262,7 @@ void webradioHandle() {
   }
   
   //Webradio messages
-  if(xQueueReceive(audioGetQueue, &audioRxMessage, 0) == pdPASS){
+  if(audioGetQueue && xQueueReceive(audioGetQueue, &audioRxMessage, 0) == pdPASS){
     //Radio thread started
     if (audioRxMessage.cmd == WR_START) {
       if (!audioRxMessage.ret) serial.println("> Audio - Using Internal DAC.");
@@ -660,17 +660,17 @@ void radioTask( void * pvParameters ) {
   audioTxTaskMessage.ret = setOutput(ADCFound);            //If we found the ADC, we assume the external DAC is also present
 #else
   audioTxTaskMessage.ret = true;  //External output only
-  audio->setPinout(-1, -1, -1);//I2S_BCLK, I2S_LRC, I2S_DOUT);
+  audio->setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT);
 #endif
 #ifdef FORCE_MONO
   audio->forceMono(true);
 #endif  
-  xQueueSend(audioGetQueue, &audioTxTaskMessage, portMAX_DELAY);
+  if (audioGetQueue) xQueueSend(audioGetQueue, &audioTxTaskMessage, portMAX_DELAY);
   for(;;) {                     //Infinite loop
     if (!audio->isRunning()) sleep(1);
     else taskYIELD(); //vTaskDelay(1); //taskYIELD();                  //Allow other tasks to run
     //Got a message from the main thread?
-    if(xQueueReceive(audioSetQueue, &audioRxTaskMessage, 1) == pdPASS) {
+    if(audioSetQueue && xQueueReceive(audioSetQueue, &audioRxTaskMessage, 1) == pdPASS) {
       //Volume
       if(audioRxTaskMessage.cmd == WR_SETVOLUME){
         audio->setVolume(audioRxTaskMessage.value1);

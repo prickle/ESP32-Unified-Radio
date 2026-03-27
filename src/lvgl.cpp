@@ -1,7 +1,10 @@
 #include "decls.h"
 
-
+#ifdef USING_TFTESPI
+TFT_eSPI tft = TFT_eSPI();
+#else
 static LGFX tft;            // declare display variable
+#endif
 
 #define LVGL_TICK_PERIOD 5
 Ticker tick; /* timer for interrupt handler */
@@ -71,16 +74,23 @@ void resetScreen() {
 void initScreen() {
   // Setup the LCD
   tft.init();
-  tft.setRotation(3);
-  tft.fillScreen(TFT_BLACK);  
-  tft.setBrightness(settings->brightness);
+  tft.setRotation(TFT_ROTATION);
+  tft.fillScreen(TFT_BLACK); 
+  setBrightness(settings->brightness);
   //Start LVGL
   initLVGL();
   screenInit();
 }
 
 void setBrightness(uint8_t bright) {
-  tft.setBrightness(bright);  
+#ifdef USING_TFTESPI   
+#ifdef TFT_BL
+  pinMode(TFT_BL, OUTPUT);
+  analogWrite(TFT_BL, bright << 2);
+#endif
+#else
+  tft.setBrightness(settings->brightness);
+#endif
 }
 
 //*** LVGL : Setup & Initialize the input device driver ***
@@ -145,7 +155,11 @@ bool tft_output(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t* bitmap) 
   tft.pushPixels(bitmap, w * h);
 #else
   /*Pixel format: Red: 5 bit, Green: 6 bit, Blue: 5 bit BUT the 2 bytes are swapped*/
+#ifdef USING_TFTESPI
+  tft.pushColors(bitmap, w * h, true);
+#else
   tft.pushPixels(bitmap, w * h, true);
+#endif
 #endif
   tft.endWrite();
   return 1;

@@ -1080,7 +1080,7 @@ void podStop() {
 //Called from loop()
 // Dispatch podcast client callbacks from here
 void podcastHandle() {
-  while (xQueueReceive(podcastGetQueue, &podcastRxMessage, 0) == pdPASS){
+  while (podcastGetQueue && xQueueReceive(podcastGetQueue, &podcastRxMessage, 0) == pdPASS){
     if (podcastRxMessage.cmd == POD_RESULT && addPodResult) addPodResult(podcastRxMessage.info);
     else if (podcastRxMessage.cmd == POD_FINISHED && podFinished) podFinished();
     else if (podcastRxMessage.cmd == POD_ERROR) {

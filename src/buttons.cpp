@@ -306,7 +306,7 @@ int tx, ty;
 bool tz;
 
 //Volume control results
-int volPot = 0;
+int volPot = -1;
 
 
 bool firstComm = true;

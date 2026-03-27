@@ -299,6 +299,9 @@
 //Portrait display
 #define BIGWEATHER
 
+#define FFTMETER
+
+
 //External touchscreen and volume knob coprocessor
 #define TOUCH_VOLUME
 //3-band EQ
@@ -327,11 +330,12 @@
 //LCD display
 //Setup
 //ILI9488 Parallel connection
-#define TFT_ILI9488_PAR
+//Using TFT_eSPI
+#define USING_TFTESPI
 #define TFT_WIDTH     320
 #define TFT_HEIGHT    480
-#define TFT_ROTATION  1
-//TFT Pinout
+#define TFT_ROTATION  0
+//TFT Pinout (actually defined in TFT_eSPI/User_Setup.h, just repeated here for convenience)
 #define TFT_CS   33  // Chip select control pin (library pulls permanently low
 #define TFT_DC   15  // Data Command control pin - use a pin in the range 0-31
 #define TFT_RST  -1  // Reset pin, toggles on startup
@@ -362,8 +366,12 @@
 //Uncomment to turn on DMA transfers to TFT
 //#define USE_DMA
 
+#ifdef USING_TFTESPI
+#include <TFT_eSPI.h>
+#else
 #define LGFX_USE_V1         // set to use new version of library
 #include <LovyanGFX.hpp>    // main library
+#endif
 #include <lvgl.h>     // Modified
 #include <EEPROM.h>
 #include <Ticker.h>
@@ -651,6 +659,7 @@ void listMenuActivate(lv_obj_t* menu);
 void setupModes();
 void setObjectVisibility();
 void setFunctionLbl(const char* txt);
+void activateFactoryMode();
 
 //sd.cpp
 boolean playFile(const char *file);

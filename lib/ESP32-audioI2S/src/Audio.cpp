@@ -182,6 +182,7 @@ Audio::Audio(bool internalDAC /* = false */, uint8_t channelEnabled /* = I2S_DAC
     m_i2s_config.tx_desc_auto_clear   = true;   // new in V1.0.1
     m_i2s_config.fixed_mclk           = I2S_PIN_NO_CHANGE;
 
+
     if (internalDAC)  {
 
         #ifdef CONFIG_IDF_TARGET_ESP32  // ESP32S3 has no DAC
@@ -213,7 +214,8 @@ Audio::Audio(bool internalDAC /* = false */, uint8_t channelEnabled /* = I2S_DAC
             m_i2s_config.communication_format = (i2s_comm_format_t)(I2S_COMM_FORMAT_I2S | I2S_COMM_FORMAT_I2S_MSB);
         #endif
 
-        i2s_driver_install((i2s_port_t)m_i2s_num, &m_i2s_config, 0, NULL);
+        esp_err_t err = i2s_driver_install((i2s_port_t)m_i2s_num, &m_i2s_config, 0, NULL);
+        ESP_ERROR_CHECK(err);
         m_f_forceMono = false;
     }
 

@@ -120,13 +120,14 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   weatherContainer = lv_obj_create(parent);
   lv_obj_add_style(weatherContainer, &style_groupbox, LV_PART_MAIN);
   lv_obj_clear_flag(weatherContainer, LV_OBJ_FLAG_SCROLLABLE);
+  int width = lv_obj_get_content_width(parent);
 #ifndef BIGWEATHER
   lv_obj_add_event_cb(weatherContainer, weatherBtnAction, LV_EVENT_CLICKED, NULL);
 #if (TFT_WIDTH == 480)
-  if (weatherExpanded) lv_obj_set_size(weatherContainer, 460, 150);
+  if (weatherExpanded) lv_obj_set_size(weatherContainer, width, 150);
   else lv_obj_set_size(weatherContainer, 118, 150); 
 #else
-  if (weatherExpanded) lv_obj_set_size(weatherContainer, 312, 108);
+  if (weatherExpanded) lv_obj_set_size(weatherContainer, width, 108);
   else lv_obj_set_size(weatherContainer, 84, 108);
 #endif
   day0Lbl = lv_label_create(weatherContainer);
@@ -152,7 +153,7 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   lv_obj_align_to(day0Wind, day0Detail, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
 #endif
 #else 
-  lv_obj_set_size(weatherContainer, 312, 326);
+  lv_obj_set_size(weatherContainer, width, 322);
   todayLabel = lv_label_create(weatherContainer);
   lv_obj_add_style(todayLabel, &style_biggestfont, LV_PART_MAIN);
   lv_obj_add_style(todayLabel, &style_yellow, LV_PART_MAIN);
@@ -177,7 +178,11 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   lv_obj_align_to(mainLabel, tempLabel, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 0);
   lv_label_set_text(mainLabel, "");
   
+#ifdef THEME_HIVIS 
+  windImg = createWindDir(weatherContainer, 50, 70, lv_color_black().full);
+#else
   windImg = createWindDir(weatherContainer, 50, 70, lv_color_hex(0x202020).full);
+#endif
   lv_obj_align_to(windImg, tempLabel, LV_ALIGN_OUT_RIGHT_TOP, 15, 0);         //Align next to the slider
   windLabel = lv_label_create(weatherContainer);
   lv_obj_add_style(windLabel, &style_biggerfont, LV_PART_MAIN);
@@ -209,7 +214,11 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   lv_obj_align_to(day1Detail, day1Img, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
   lv_label_set_text(day1Detail, "");
 #if (TFT_WIDTH == 480 || defined(BIGWEATHER))  
+#ifdef BIGWEATHER
+  day1Wind = createWindSpd(weatherContainer, 50, 10, lv_color_black().full);
+#else
   day1Wind = createWindSpd(weatherContainer, 50, 10, lv_color_hex(0x101010).full);
+#endif
   lv_obj_align_to(day1Wind, day1Detail, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
 #endif
 
@@ -226,7 +235,7 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   lv_obj_set_pos(day2Img, 132, 15);
 #endif
 #else
-  lv_obj_set_pos(day2Img, 93, 150);
+  lv_obj_set_pos(day2Img, 90, 150);
 #endif
   lv_obj_align_to(day2Lbl, day2Img, LV_ALIGN_OUT_TOP_MID, 0, 0);         //Align next to the slider
   day2Detail = lv_label_create(weatherContainer);
@@ -235,7 +244,11 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   lv_obj_align_to(day2Detail, day2Img, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
   lv_label_set_text(day2Detail, "");
 #if (TFT_WIDTH == 480 || defined(BIGWEATHER))  
+#ifdef BIGWEATHER
+  day2Wind = createWindSpd(weatherContainer, 50, 10, lv_color_black().full);
+#else
   day2Wind = createWindSpd(weatherContainer, 50, 10, lv_color_hex(0x101010).full);
+#endif
   lv_obj_align_to(day2Wind, day2Detail, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
 #endif
 
@@ -252,7 +265,7 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   lv_obj_set_pos(day3Img, 188, 15);
 #endif
 #else
-  lv_obj_set_pos(day3Img, 171, 150);
+  lv_obj_set_pos(day3Img, 165, 150);
 #endif
   lv_obj_align_to(day3Lbl, day3Img, LV_ALIGN_OUT_TOP_MID, 0, 0);         //Align next to the slider
   day3Detail = lv_label_create(weatherContainer);
@@ -260,8 +273,12 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   lv_obj_set_style_text_align(day3Detail, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_align_to(day3Detail, day3Img, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
   lv_label_set_text(day3Detail, "");
-#if (TFT_WIDTH == 480 || defined(BIGWEATHER))  
+#if (TFT_WIDTH == 480 || defined(BIGWEATHER))
+#ifdef BIGWEATHER  
+  day3Wind = createWindSpd(weatherContainer, 50, 10, lv_color_black().full);
+#else
   day3Wind = createWindSpd(weatherContainer, 50, 10, lv_color_hex(0x101010).full);
+#endif
   lv_obj_align_to(day3Wind, day3Detail, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
 #endif
 
@@ -278,7 +295,7 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   lv_obj_set_pos(day4Img, 244, 15);
 #endif
 #else
-  lv_obj_set_pos(day4Img, 249, 150);
+  lv_obj_set_pos(day4Img, 240, 150);
 #endif
   lv_obj_align_to(day4Lbl, day4Img, LV_ALIGN_OUT_TOP_MID, 0, 0);         //Align next to the slider
   day4Detail = lv_label_create(weatherContainer);
@@ -286,8 +303,12 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   lv_obj_set_style_text_align(day4Detail, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_align_to(day4Detail, day4Img, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
   lv_label_set_text(day4Detail, "");
-#if (TFT_WIDTH == 480 || defined(BIGWEATHER))  
+#if (TFT_WIDTH == 480 || defined(BIGWEATHER))
+#ifdef BIGWEATHER  
+  day4Wind = createWindSpd(weatherContainer, 50, 10, lv_color_black().full);
+#else
   day4Wind = createWindSpd(weatherContainer, 50, 10, lv_color_hex(0x101010).full);
+#endif
   lv_obj_align_to(day4Wind, day4Detail, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
 #endif
 
@@ -297,14 +318,18 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   //lv_obj_set_style_text_align(sunLbl, LV_TEXT_ALIGN_CENTER, 0);
   lv_obj_set_pos(sunLbl, 15, 260);
   lv_label_set_text(sunLbl, "");
- 
+
+#ifdef THEME_HIVIS  
+  moonImg = createMoon(weatherContainer, 50, 50, lv_color_black().full);
+#else
   moonImg = createMoon(weatherContainer, 50, 50, lv_color_hex(0x101010).full);
+#endif
   lv_obj_set_pos(moonImg, 130, 255);
 
   moonLbl = lv_label_create(weatherContainer);
   lv_obj_add_style(moonLbl, &style_font, LV_PART_MAIN);
   //lv_obj_set_style_text_align(moonLbl, LV_TEXT_ALIGN_CENTER, 0);
-  lv_obj_set_pos(moonLbl, 190, 260);
+  lv_obj_set_pos(moonLbl, 188, 260);
   lv_label_set_text(moonLbl, "");
 #else
   //Expand button on top
@@ -417,7 +442,7 @@ void weatherBegin() {
 //Called from loop
 // Receive messages from weather client and dispatch actions from here
 void weatherHandle() {
-  if (xQueueReceive(weatherGetQueue, &weatherRxMessage, 0) == pdPASS){
+  if (weatherGetQueue && xQueueReceive(weatherGetQueue, &weatherRxMessage, 0) == pdPASS){
     if (weatherRxMessage.cmd == WTH_RESULT) {
       createWeather();  //if not already
       drawWeather();

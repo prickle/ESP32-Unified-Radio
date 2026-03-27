@@ -136,7 +136,8 @@ bool factoryMode = false;
 //Init the screen and build the GUI windows
 void screenInit(void) {
    //Initialize the theme (this will need the extra fonts in future LVGL versions)
-  lv_theme_t * th = lv_theme_default_init(NULL,  //Use the DPI, size, etc from default display 
+#ifndef THEME_HIVIS
+   lv_theme_t * th = lv_theme_default_init(NULL,  //Use the DPI, size, etc from default display 
 #ifdef THEME_BLUE
                                           lv_palette_main(LV_PALETTE_LIGHT_BLUE), lv_palette_main(LV_PALETTE_CYAN),   //Primary and secondary palette
 #else
@@ -144,7 +145,12 @@ void screenInit(void) {
 #endif
                                           true,    //Light or dark mode 
                                           &lv_font_terminal12); //Small, normal, large fonts
-                                          
+#else
+  lv_theme_t * th = lv_theme_mono_init(NULL,  //Use the DPI, size, etc from default display 
+                                          true,    //Light or dark mode 
+                                          &lv_font_terminal12); //Small, normal, large fonts
+#endif                                          
+
   lv_disp_set_theme(NULL, th); //Assign the theme to the default display
 
   //Style of the wallpaper
@@ -1262,11 +1268,15 @@ void factoryRemoveDlnaPlaylist(lv_event_t * event);
 void factoryRemoveSdPlaylist(lv_event_t * event);
 void factoryFormatFs(lv_event_t * event);
 
-void factoryModeActivated(lv_event_t * event) {
+void activateFactoryMode() {
   if (!factoryMode) {
     factoryMode = true;
     createFactoryWindow();
   }
+}
+
+void factoryModeActivated(lv_event_t * event) {
+  activateFactoryMode();
 }
 
 void createFactoryWindow() {
