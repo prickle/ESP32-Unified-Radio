@@ -33,7 +33,7 @@ static lv_obj_t * weatherContainer;
 static lv_obj_t * weatherBtn;
 static lv_obj_t * weatherBtnLbl;
 static void weatherBtnAction(lv_event_t * event);
-#endif
+#else
 static lv_obj_t * mainIcon;
 static lv_obj_t * mainLabel;
 static lv_obj_t * windImg;
@@ -43,6 +43,7 @@ static lv_obj_t * todayLabel;
 static lv_obj_t * sunLbl;
 static lv_obj_t * moonLbl;
 static lv_obj_t * moonImg;
+#endif
 
 #ifndef BIGWEATHER
 static lv_obj_t * day0Lbl;
@@ -124,6 +125,7 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
 #ifndef BIGWEATHER
   lv_obj_add_event_cb(weatherContainer, weatherBtnAction, LV_EVENT_CLICKED, NULL);
 #if (TFT_WIDTH == 480)
+  width -= 8;
   if (weatherExpanded) lv_obj_set_size(weatherContainer, width, 150);
   else lv_obj_set_size(weatherContainer, 118, 150); 
 #else
@@ -149,7 +151,7 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   lv_obj_align_to(day0Detail, day0Img, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
   lv_label_set_text(day0Detail, "");
 #if (TFT_WIDTH == 480)  
-  day0Wind = createWindSpd(weatherContainer, 50, 10);
+  day0Wind = createWindSpd(weatherContainer, 50, 10, lv_color_hex(0x101010).full);
   lv_obj_align_to(day0Wind, day0Detail, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
 #endif
 #else 
@@ -198,14 +200,12 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   lv_label_set_text(day1Lbl, "");
   day1Img = lv_img_create(weatherContainer);
   lv_obj_set_size(day1Img, 50, 50);
-#ifndef BIGWEATHER
-#if (TFT_WIDTH == 480)
+#ifdef BIGWEATHER
+  lv_obj_set_pos(day1Img, 15, 150);  
+#elif (TFT_WIDTH == 480)
   lv_obj_set_pos(day1Img, 128, 25);
 #else
   lv_obj_set_pos(day1Img, 76, 15);
-#endif
-#else
-  lv_obj_set_pos(day1Img, 15, 150);  
 #endif
   lv_obj_align_to(day1Lbl, day1Img, LV_ALIGN_OUT_TOP_MID, 0, 0);         //Align next to the slider
   day1Detail = lv_label_create(weatherContainer);
@@ -228,14 +228,12 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   lv_label_set_text(day2Lbl, "");
   day2Img = lv_img_create(weatherContainer);
   lv_obj_set_size(day2Img, 50, 50);
-#ifndef BIGWEATHER
-#if (TFT_WIDTH == 480)
+#ifdef BIGWEATHER
+  lv_obj_set_pos(day2Img, 90, 150);
+#elif (TFT_WIDTH == 480)
   lv_obj_set_pos(day2Img, 206, 25);
 #else
   lv_obj_set_pos(day2Img, 132, 15);
-#endif
-#else
-  lv_obj_set_pos(day2Img, 90, 150);
 #endif
   lv_obj_align_to(day2Lbl, day2Img, LV_ALIGN_OUT_TOP_MID, 0, 0);         //Align next to the slider
   day2Detail = lv_label_create(weatherContainer);
@@ -258,14 +256,12 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   lv_label_set_text(day3Lbl, "");
   day3Img = lv_img_create(weatherContainer);
   lv_obj_set_size(day3Img, 50, 50);
-#ifndef BIGWEATHER
-#if (TFT_WIDTH == 480)
+#ifdef BIGWEATHER
+  lv_obj_set_pos(day3Img, 165, 150);
+#elif (TFT_WIDTH == 480)
   lv_obj_set_pos(day3Img, 284, 25);
 #else
   lv_obj_set_pos(day3Img, 188, 15);
-#endif
-#else
-  lv_obj_set_pos(day3Img, 165, 150);
 #endif
   lv_obj_align_to(day3Lbl, day3Img, LV_ALIGN_OUT_TOP_MID, 0, 0);         //Align next to the slider
   day3Detail = lv_label_create(weatherContainer);
@@ -288,14 +284,12 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
   lv_label_set_text(day4Lbl, "");
   day4Img = lv_img_create(weatherContainer);
   lv_obj_set_size(day4Img, 50, 50);
-#ifndef BIGWEATHER
-#if (TFT_WIDTH == 480)
+#ifdef BIGWEATHER
+  lv_obj_set_pos(day4Img, 240, 150);
+#elif (TFT_WIDTH == 480)
   lv_obj_set_pos(day4Img, 362, 25);
 #else
   lv_obj_set_pos(day4Img, 244, 15);
-#endif
-#else
-  lv_obj_set_pos(day4Img, 240, 150);
 #endif
   lv_obj_align_to(day4Lbl, day4Img, LV_ALIGN_OUT_TOP_MID, 0, 0);         //Align next to the slider
   day4Detail = lv_label_create(weatherContainer);
@@ -375,11 +369,15 @@ static void weatherBtnAction(lv_event_t * event) {
   lv_anim_set_exec_cb(&a, (lv_anim_exec_xcb_t)lv_obj_set_width);
 #pragma GCC diagnostic pop
   lv_anim_set_time(&a, 500);
+  int width = lv_obj_get_content_width(lv_obj_get_parent(weatherContainer));
+#if (TFT_WIDTH == 480)
+  width -= 8;
+#endif
   if (!weatherExpanded) {
 #if (TFT_WIDTH == 480)
-    lv_anim_set_values(&a, 118, 460);
+    lv_anim_set_values(&a, 118, width);//460);
 #else 
-    lv_anim_set_values(&a, 84, 312);
+    lv_anim_set_values(&a, 84, width);//312);
 #endif
     lv_anim_set_path_cb(&a, lv_anim_path_ease_in);
     lv_anim_start(&a);
@@ -389,9 +387,9 @@ static void weatherBtnAction(lv_event_t * event) {
     lv_anim_set_exec_cb(&a, (lv_anim_exec_xcb_t)lv_obj_set_x);
 #pragma GCC diagnostic pop
 #if (TFT_WIDTH == 480)
-    lv_anim_set_values(&a, 89, 431);
+    lv_anim_set_values(&a, 89, width - 29);//431);
 #else
-    lv_anim_set_values(&a, 58, 286);
+    lv_anim_set_values(&a, 58, width - 26);//286);
 #endif
     lv_anim_set_ready_cb(&a, weatherGrownAction);
     lv_anim_start(&a);
@@ -399,9 +397,9 @@ static void weatherBtnAction(lv_event_t * event) {
     weatherExpanded = true;
   } else {
 #if (TFT_WIDTH == 480)    
-    lv_anim_set_values(&a, 460, 118);
+    lv_anim_set_values(&a, width, 118);
 #else
-    lv_anim_set_values(&a, 312, 84);
+    lv_anim_set_values(&a, width, 84);
 #endif
     lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
     lv_anim_start(&a);
@@ -411,9 +409,9 @@ static void weatherBtnAction(lv_event_t * event) {
     lv_anim_set_exec_cb(&a, (lv_anim_exec_xcb_t)lv_obj_set_x);
 #pragma GCC diagnostic pop
 #if (TFT_WIDTH == 480)
-    lv_anim_set_values(&a, 431, 89);
+    lv_anim_set_values(&a, width - 29, 89);
 #else
-    lv_anim_set_values(&a, 286, 58);
+    lv_anim_set_values(&a, width - 26, 58);
 #endif
     lv_anim_set_ready_cb(&a, weatherShrunkAction);
     lv_anim_start(&a);

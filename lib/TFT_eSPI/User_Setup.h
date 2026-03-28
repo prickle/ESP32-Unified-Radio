@@ -34,15 +34,16 @@
 
 #ifdef PHILIPS
 #define ILI9488_DRIVER  //Philips Radio/coffee roaster
-#endif
+//#endif
 
-#ifdef WOOFER
+//dummy driver
+#else // WOOFER           //Not the actual superwoofer driver, that is LovyanGFX. this is a historical example.
+#define WOOFER
 #define ST7796_DRIVER   //Super Woofer
 #endif
 
 // For M5Stack ESP32 module with integrated display ONLY, remove // in line below
 //#define M5STACK
-
 // For ST7735  and ILI9163 ONLY, define the pixel width and height in portrait orientation
 //#define TFT_WIDTH  128
 //#define TFT_HEIGHT 160
@@ -159,7 +160,7 @@
 //#define TFT_BL   32  // LED back-light
 //#define TOUCH_CS 21     // Chip select pin (T_CS) of touch screen
 
-/*
+/*#ifdef MINIRADIO
 //defined for esp32 miniradio -- nxm
 #define TFT_MISO 19
 #define TFT_MOSI 23
@@ -169,6 +170,7 @@
 #define TFT_RST  32  // Reset pin (could connect to Arduino RESET pin)
 #define TFT_BL   14  // LED back-light
 #define TOUCH_CS 22     // Chip select pin (T_CS) of touch screen
+#endif
 */
 
 //defined for tamp handle and joystick -- nxm
@@ -185,13 +187,15 @@
 //#define TFT_RST  -1  // Set TFT_RST to -1 if display RESET is connected to ESP32 board RST
 
 // For the M5Stack module use these #define lines
-//#define TFT_MISO 19
-//#define TFT_MOSI 23
-//#define TFT_SCLK 18
-//#define TFT_CS   14  // Chip select control pin
-//#define TFT_DC   27  // Data Command control pin
-//#define TFT_RST  33  // Reset pin (could connect to Arduino RESET pin)
-//#define TFT_BL   32  // LED back-light
+#ifdef M5STACK
+#define TFT_MISO 19
+#define TFT_MOSI 23
+#define TFT_SCLK 18
+#define TFT_CS   14  // Chip select control pin
+#define TFT_DC   27  // Data Command control pin
+#define TFT_RST  33  // Reset pin (could connect to Arduino RESET pin)
+#define TFT_BL   32  // LED back-light
+#endif
 
 //Tamp Handle
 //#define TOUCH_CS 21     // Chip select pin (T_CS) of touch screen

@@ -45,6 +45,7 @@
 #define BATTERYMON
 //Using this LCD
 #define TFT_ST7796  //480x320
+#define TFT_ROTATION 3
 //#define VUMETER
 #define FFTMETER
 #endif
@@ -74,6 +75,7 @@
 //#define BATTERYMON
 //Using this LCD
 #define TFT_ST7796  //480x320
+#define TFT_ROTATION 3
 #define VUMETER
 #define LOG_REDIRECT
 #endif
@@ -127,6 +129,7 @@
 #define TFT_ILI9341_1
 #define TFT_WIDTH     320
 #define TFT_HEIGHT    240
+#define TFT_ROTATION  3
 #define TFT_BL        32 
 #define TFT_MOSI      23 
 #define TFT_MISO      19 
@@ -191,6 +194,7 @@
 //LCD display
 //Actually defined in TFT_eSPI
 #define TFT_ILI9341_2
+#define TFT_ROTATION  3
 #define TFT_MOSI      23
 #define TFT_MISO      19
 #define TFT_SCK       18
@@ -364,7 +368,7 @@
 #include <Arduino.h>
 
 //Uncomment to turn on DMA transfers to TFT
-//#define USE_DMA
+#define USE_DMA
 
 #ifdef USING_TFTESPI
 #include <TFT_eSPI.h>

@@ -74,7 +74,9 @@ void resetScreen() {
 void initScreen() {
   // Setup the LCD
   tft.init();
+#ifdef TFT_ROTATION  
   tft.setRotation(TFT_ROTATION);
+#endif
   tft.fillScreen(TFT_BLACK); 
   setBrightness(settings->brightness);
   //Start LVGL
