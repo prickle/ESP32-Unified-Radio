@@ -7,16 +7,17 @@ TaskHandle_t radioTaskHandle;
 
 uint8_t wrVolume   = 21;
 uint8_t wrChannels = 0;
-char* wrurl; //[FTP_NAME_LENGTH];
+char* wrurl = 0; //[FTP_NAME_LENGTH];
 bool wrMeta;
 uint32_t wrResume = 0;
 char response[64] = {};
 //String buffers
 #define METABUF_LEN 128
-char* wrTitle;
-char* wrStation;
-char* wrIcyurl;
+char* wrTitle = 0;
+char* wrStation = 0;
+char* wrIcyurl = 0;
 //Flags
+bool wrIsAllocated = false;
 bool wrIsRunning = false;
 //Action triggers
 bool newURL = false;
@@ -107,7 +108,7 @@ void webradioSetup() {
              16,                   // priority of the task 
              &radioTaskHandle,    // Task handle to keep track of created task 
                0);                  // pin task to core 0 
-
+  wrIsAllocated = true;
 }
 
 //Command the webradio to delete itself, try to recover memory.
@@ -115,6 +116,10 @@ void webRadioDelete() {
   if (!audioSetQueue) return;
   audioTxMessage.cmd = WR_DELETE;
   xQueueSend(audioSetQueue, &audioTxMessage, 0);  
+}
+
+bool isWebradioAllocated() {
+  return wrIsAllocated;
 }
 
 //Set volume
@@ -433,10 +438,19 @@ void webradioHandle() {
     }
     else if (audioRxMessage.cmd == WR_DELETE) {
       //Webradio thread has self-destructed, tidy up on this side by deleting the queues
+      delete(wrurl);
+      delete(wrTitle);
+      delete(wrStation);
+      delete(wrIcyurl);
+      wrurl = wrTitle = wrStation = wrIcyurl = nullptr;
       vQueueDelete(audioGetQueue);
       vQueueDelete(audioSetQueue);
-      //vQueueDelete(fftQueue);
-      audioGetQueue = audioSetQueue = 0; //fftQueue = 0; 
+      audioGetQueue = audioSetQueue = nullptr;
+#ifdef FFT_METER      
+      vQueueDelete(fftQueue);
+      fftQueue = 0; 
+#endif
+      wrIsAllocated = false;
       return;     
     }
 #ifdef VUMETER    

@@ -648,6 +648,9 @@ void setRadioMode(int mode) {
 #ifndef USE_OTA
   if (settings->mode != MODE_WEB && settings->mode != MODE_FTP && settings->mode != MODE_POD && settings->mode != MODE_DLNA) 
     wifiDisconnect();
+#endif
+#ifdef BLUETOOTH
+  if (isWebradioAllocated()) webradioStop();
 #endif    
   //Set up new mode
   if (settings->mode == MODE_FTP) {
@@ -716,8 +719,9 @@ void setRadioMode(int mode) {
   }
 #ifdef BLUETOOTH  
   else if (settings->mode == MODE_BT) {
-    prepareI2S(); 
-    setupBluetooth();
+    startBT();
+    //prepareI2S(); 
+    //setupBluetooth();
   }
 #endif  
   updateUrlEditText();

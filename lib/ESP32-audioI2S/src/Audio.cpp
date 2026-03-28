@@ -4312,31 +4312,32 @@ void Audio::setI2SCommFMT_LSB(bool commFMT) {
 }
 //---------------------------------------------------------------------------------------------------------------------
 bool Audio::playSample(int16_t sample[2]) {
+    float fsample[2];
 
     if (getBitsPerSample() == 8) { // Upsample from unsigned 8 bits to signed 16 bits
         sample[LEFTCHANNEL]  = ((sample[LEFTCHANNEL]  & 0xff) -128) << 8;
         sample[RIGHTCHANNEL] = ((sample[RIGHTCHANNEL] & 0xff) -128) << 8;
     }
 
-    sample[LEFTCHANNEL]  = sample[LEFTCHANNEL]  >> 1; // half Vin so we can boost up to 6dB in filters
-    sample[RIGHTCHANNEL] = sample[RIGHTCHANNEL] >> 1;
+    fsample[LEFTCHANNEL]  = sample[LEFTCHANNEL]  >> 1; // half Vin so we can boost up to 6dB in filters
+    fsample[RIGHTCHANNEL] = sample[RIGHTCHANNEL] >> 1;
 
     //Stereo wide
     if (m_f_stereoWide) {
         static float wideness = 0.4;
-        float mid = (sample[LEFTCHANNEL] + sample[RIGHTCHANNEL]) * 0.5f;
-        float side = (sample[LEFTCHANNEL] - sample[RIGHTCHANNEL]) * (0.5f + wideness);
-        sample[LEFTCHANNEL] = mid + side;
-        sample[RIGHTCHANNEL] = mid - side;    
+        float mid = (fsample[LEFTCHANNEL] + fsample[RIGHTCHANNEL]) * 0.5f;
+        float side = (fsample[LEFTCHANNEL] - fsample[RIGHTCHANNEL]) * (0.5f + wideness);
+        fsample[LEFTCHANNEL] = mid + side;
+        fsample[RIGHTCHANNEL] = mid - side;    
     }
 
     // Filterchain, can commented out if not used
-    sample = IIR_filterChain0(sample);
-    sample = IIR_filterChain1(sample);
-    sample = IIR_filterChain2(sample);
+    IIR_filterChain0(fsample);
+    IIR_filterChain1(fsample);
+    IIR_filterChain2(fsample);
     //-------------------------------------------
 
-    uint32_t s32 = Gain(sample); // vosample2lume;
+    uint32_t s32 = Gain(fsample); // vosample2lume;
 
     if(m_f_internalDAC) {
         s32 += 0x80008000;
@@ -4409,7 +4410,7 @@ uint8_t Audio::getI2sPort() {
     return m_i2s_num;
 }
 //---------------------------------------------------------------------------------------------------------------------
-int32_t Audio::Gain(int16_t s[2]) {
+int32_t Audio::Gain(float s[2]) {
     int32_t v[2];
     float step = (float)m_vol /64;
     uint8_t l = 0, r = 0;
@@ -4423,8 +4424,8 @@ int32_t Audio::Gain(int16_t s[2]) {
         r = (uint8_t)(step);
     }
 
-    v[LEFTCHANNEL] = (s[LEFTCHANNEL]  * (m_vol - l)) >> 6;
-    v[RIGHTCHANNEL]= (s[RIGHTCHANNEL] * (m_vol - r)) >> 6;
+    v[LEFTCHANNEL] = (s[LEFTCHANNEL]  * (m_vol - l)) / 64.0f;//>> 6;
+    v[RIGHTCHANNEL]= (s[RIGHTCHANNEL] * (m_vol - r)) / 64.0f;//>> 6;
 
     return (v[LEFTCHANNEL] << 16) | (v[RIGHTCHANNEL] & 0xffff);
 }
@@ -4538,143 +4539,115 @@ void Audio::IIR_calculateCoefficients(int8_t G0, int8_t G1, int8_t G2){  // Infi
 //                                                  m_filter[2].b1, m_filter[2].b2);
 }
 //---------------------------------------------------------------------------------------------------------------------
-int16_t* Audio::IIR_filterChain0(int16_t iir_in[2], bool clear){  // Infinite Impulse Response (IIR) filters
+void Audio::IIR_filterChain0(float sample[2], bool clear){  // Infinite Impulse Response (IIR) filters
 
     uint8_t z1 = 0, z2 = 1;
     enum: uint8_t {in = 0, out = 1};
-    float inSample[2];
-    float outSample[2];
     static int16_t iir_out[2];
+    float outSample[2];
 
     if(clear){
         memset(m_filterBuff, 0, sizeof(m_filterBuff));            // zero IIR filterbuffer
-        iir_out[0] = 0;
-        iir_out[1] = 0;
-        iir_in[0]  = 0;
-        iir_in[1]  = 0;
+        sample[0]  = 0;
+        sample[1]  = 0;
     }
 
-    inSample[LEFTCHANNEL]  = (float)(iir_in[LEFTCHANNEL]);
-    inSample[RIGHTCHANNEL] = (float)(iir_in[RIGHTCHANNEL]);
-
-    outSample[LEFTCHANNEL] =   m_filter[0].a0  * inSample[LEFTCHANNEL]
+    outSample[LEFTCHANNEL] =   m_filter[0].a0  * sample[LEFTCHANNEL]
                              + m_filter[0].a1  * m_filterBuff[0][z1][in] [LEFTCHANNEL]
                              + m_filter[0].a2  * m_filterBuff[0][z2][in] [LEFTCHANNEL]
                              - m_filter[0].b1  * m_filterBuff[0][z1][out][LEFTCHANNEL]
                              - m_filter[0].b2  * m_filterBuff[0][z2][out][LEFTCHANNEL];
 
     m_filterBuff[0][z2][in] [LEFTCHANNEL]  = m_filterBuff[0][z1][in][LEFTCHANNEL];
-    m_filterBuff[0][z1][in] [LEFTCHANNEL]  = inSample[LEFTCHANNEL];
+    m_filterBuff[0][z1][in] [LEFTCHANNEL]  = sample[LEFTCHANNEL];
     m_filterBuff[0][z2][out][LEFTCHANNEL]  = m_filterBuff[0][z1][out][LEFTCHANNEL];
     m_filterBuff[0][z1][out][LEFTCHANNEL]  = outSample[LEFTCHANNEL];
-    iir_out[LEFTCHANNEL] = (int16_t)outSample[LEFTCHANNEL];
+    sample[LEFTCHANNEL] = outSample[LEFTCHANNEL];
 
-
-    outSample[RIGHTCHANNEL] =  m_filter[0].a0 * inSample[RIGHTCHANNEL]
+    outSample[RIGHTCHANNEL] =  m_filter[0].a0 * sample[RIGHTCHANNEL]
                              + m_filter[0].a1 * m_filterBuff[0][z1][in] [RIGHTCHANNEL]
                              + m_filter[0].a2 * m_filterBuff[0][z2][in] [RIGHTCHANNEL]
                              - m_filter[0].b1 * m_filterBuff[0][z1][out][RIGHTCHANNEL]
                              - m_filter[0].b2 * m_filterBuff[0][z2][out][RIGHTCHANNEL];
 
     m_filterBuff[0][z2][in] [RIGHTCHANNEL] = m_filterBuff[0][z1][in][RIGHTCHANNEL];
-    m_filterBuff[0][z1][in] [RIGHTCHANNEL] = inSample[RIGHTCHANNEL];
+    m_filterBuff[0][z1][in] [RIGHTCHANNEL] = sample[RIGHTCHANNEL];
     m_filterBuff[0][z2][out][RIGHTCHANNEL] = m_filterBuff[0][z1][out][RIGHTCHANNEL];
     m_filterBuff[0][z1][out][RIGHTCHANNEL] = outSample[RIGHTCHANNEL];
-    iir_out[RIGHTCHANNEL] = (int16_t) outSample[RIGHTCHANNEL];
+    sample[RIGHTCHANNEL] = outSample[RIGHTCHANNEL];
 
-    return iir_out;
 }
 //---------------------------------------------------------------------------------------------------------------------
-int16_t* Audio::IIR_filterChain1(int16_t iir_in[2], bool clear){  // Infinite Impulse Response (IIR) filters
+void Audio::IIR_filterChain1(float sample[2], bool clear){  // Infinite Impulse Response (IIR) filters
 
     uint8_t z1 = 0, z2 = 1;
     enum: uint8_t {in = 0, out = 1};
-    float inSample[2];
     float outSample[2];
-    static int16_t iir_out[2];
 
     if(clear){
         memset(m_filterBuff, 0, sizeof(m_filterBuff));            // zero IIR filterbuffer
-        iir_out[0] = 0;
-        iir_out[1] = 0;
-        iir_in[0]  = 0;
-        iir_in[1]  = 0;
+        sample[0]  = 0;
+        sample[1]  = 0;
     }
 
-    inSample[LEFTCHANNEL]  = (float)(iir_in[LEFTCHANNEL]);
-    inSample[RIGHTCHANNEL] = (float)(iir_in[RIGHTCHANNEL]);
-
-    outSample[LEFTCHANNEL] =   m_filter[1].a0  * inSample[LEFTCHANNEL]
+    outSample[LEFTCHANNEL] =   m_filter[1].a0  * sample[LEFTCHANNEL]
                              + m_filter[1].a1  * m_filterBuff[1][z1][in] [LEFTCHANNEL]
                              + m_filter[1].a2  * m_filterBuff[1][z2][in] [LEFTCHANNEL]
                              - m_filter[1].b1  * m_filterBuff[1][z1][out][LEFTCHANNEL]
                              - m_filter[1].b2  * m_filterBuff[1][z2][out][LEFTCHANNEL];
 
     m_filterBuff[1][z2][in] [LEFTCHANNEL]  = m_filterBuff[1][z1][in][LEFTCHANNEL];
-    m_filterBuff[1][z1][in] [LEFTCHANNEL]  = inSample[LEFTCHANNEL];
+    m_filterBuff[1][z1][in] [LEFTCHANNEL]  = sample[LEFTCHANNEL];
     m_filterBuff[1][z2][out][LEFTCHANNEL]  = m_filterBuff[1][z1][out][LEFTCHANNEL];
     m_filterBuff[1][z1][out][LEFTCHANNEL]  = outSample[LEFTCHANNEL];
-    iir_out[LEFTCHANNEL] = (int16_t)outSample[LEFTCHANNEL];
+    sample[LEFTCHANNEL] = outSample[LEFTCHANNEL];
 
-
-    outSample[RIGHTCHANNEL] =  m_filter[1].a0 * inSample[RIGHTCHANNEL]
+    outSample[RIGHTCHANNEL] =  m_filter[1].a0 * sample[RIGHTCHANNEL]
                              + m_filter[1].a1 * m_filterBuff[1][z1][in] [RIGHTCHANNEL]
                              + m_filter[1].a2 * m_filterBuff[1][z2][in] [RIGHTCHANNEL]
                              - m_filter[1].b1 * m_filterBuff[1][z1][out][RIGHTCHANNEL]
                              - m_filter[1].b2 * m_filterBuff[1][z2][out][RIGHTCHANNEL];
 
     m_filterBuff[1][z2][in] [RIGHTCHANNEL] = m_filterBuff[1][z1][in][RIGHTCHANNEL];
-    m_filterBuff[1][z1][in] [RIGHTCHANNEL] = inSample[RIGHTCHANNEL];
+    m_filterBuff[1][z1][in] [RIGHTCHANNEL] = sample[RIGHTCHANNEL];
     m_filterBuff[1][z2][out][RIGHTCHANNEL] = m_filterBuff[1][z1][out][RIGHTCHANNEL];
     m_filterBuff[1][z1][out][RIGHTCHANNEL] = outSample[RIGHTCHANNEL];
-    iir_out[RIGHTCHANNEL] = (int16_t) outSample[RIGHTCHANNEL];
-
-    return iir_out;
+    sample[RIGHTCHANNEL] = outSample[RIGHTCHANNEL];
 }
 //---------------------------------------------------------------------------------------------------------------------
-int16_t* Audio::IIR_filterChain2(int16_t iir_in[2], bool clear){  // Infinite Impulse Response (IIR) filters
+void Audio::IIR_filterChain2(float sample[2], bool clear){  // Infinite Impulse Response (IIR) filters
 
     uint8_t z1 = 0, z2 = 1;
     enum: uint8_t {in = 0, out = 1};
-    float inSample[2];
     float outSample[2];
-    static int16_t iir_out[2];
 
     if(clear){
         memset(m_filterBuff, 0, sizeof(m_filterBuff));            // zero IIR filterbuffer
-        iir_out[0] = 0;
-        iir_out[1] = 0;
-        iir_in[0]  = 0;
-        iir_in[1]  = 0;
+        sample[0]  = 0;
+        sample[1]  = 0;
     }
 
-    inSample[LEFTCHANNEL]  = (float)(iir_in[LEFTCHANNEL]);
-    inSample[RIGHTCHANNEL] = (float)(iir_in[RIGHTCHANNEL]);
-
-    outSample[LEFTCHANNEL] =   m_filter[2].a0  * inSample[LEFTCHANNEL]
+    outSample[LEFTCHANNEL] =   m_filter[2].a0  * sample[LEFTCHANNEL]
                              + m_filter[2].a1  * m_filterBuff[2][z1][in] [LEFTCHANNEL]
                              + m_filter[2].a2  * m_filterBuff[2][z2][in] [LEFTCHANNEL]
                              - m_filter[2].b1  * m_filterBuff[2][z1][out][LEFTCHANNEL]
                              - m_filter[2].b2  * m_filterBuff[2][z2][out][LEFTCHANNEL];
 
     m_filterBuff[2][z2][in] [LEFTCHANNEL]  = m_filterBuff[2][z1][in][LEFTCHANNEL];
-    m_filterBuff[2][z1][in] [LEFTCHANNEL]  = inSample[LEFTCHANNEL];
+    m_filterBuff[2][z1][in] [LEFTCHANNEL]  = sample[LEFTCHANNEL];
     m_filterBuff[2][z2][out][LEFTCHANNEL]  = m_filterBuff[2][z1][out][LEFTCHANNEL];
     m_filterBuff[2][z1][out][LEFTCHANNEL]  = outSample[LEFTCHANNEL];
-    iir_out[LEFTCHANNEL] = (int16_t)outSample[LEFTCHANNEL];
+    sample[LEFTCHANNEL] = outSample[LEFTCHANNEL];
 
-
-    outSample[RIGHTCHANNEL] =  m_filter[2].a0 * inSample[RIGHTCHANNEL]
+    outSample[RIGHTCHANNEL] =  m_filter[2].a0 * sample[RIGHTCHANNEL]
                              + m_filter[2].a1 * m_filterBuff[2][z1][in] [RIGHTCHANNEL]
                              + m_filter[2].a2 * m_filterBuff[2][z2][in] [RIGHTCHANNEL]
                              - m_filter[2].b1 * m_filterBuff[2][z1][out][RIGHTCHANNEL]
                              - m_filter[2].b2 * m_filterBuff[2][z2][out][RIGHTCHANNEL];
 
     m_filterBuff[2][z2][in] [RIGHTCHANNEL] = m_filterBuff[2][z1][in][RIGHTCHANNEL];
-    m_filterBuff[2][z1][in] [RIGHTCHANNEL] = inSample[RIGHTCHANNEL];
+    m_filterBuff[2][z1][in] [RIGHTCHANNEL] = sample[RIGHTCHANNEL];
     m_filterBuff[2][z2][out][RIGHTCHANNEL] = m_filterBuff[2][z1][out][RIGHTCHANNEL];
     m_filterBuff[2][z1][out][RIGHTCHANNEL] = outSample[RIGHTCHANNEL];
-    iir_out[RIGHTCHANNEL] = (int16_t) outSample[RIGHTCHANNEL];
-
-    return iir_out;
+    sample[RIGHTCHANNEL] = outSample[RIGHTCHANNEL];
 }

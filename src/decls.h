@@ -367,12 +367,12 @@
 
 #include <Arduino.h>
 
-//Uncomment to turn on DMA transfers to TFT
-#define USE_DMA
 
 #ifdef USING_TFTESPI
 #include <TFT_eSPI.h>
 #else
+//Uncomment to turn on DMA transfers to TFT
+#define USE_DMA
 #define LGFX_USE_V1         // set to use new version of library
 #include <LovyanGFX.hpp>    // main library
 #endif
@@ -424,6 +424,7 @@ void setDspVolume(uint8_t volume);
 void setVSTone ( uint16_t rtone );
 uint16_t formatVSTone(int8_t bass, int8_t mid, int8_t treb);
 void webradioStop();
+bool isWebradioAllocated();
 void setMonoOutput(bool mono);
 
 //batt.cpp
@@ -453,7 +454,10 @@ void browserListMenu(lv_event_t * event);
 
 #ifdef BLUETOOTH
 //bluetooth.cpp
-void setupBluetooth();
+//void setupBluetooth();
+void startBT();
+void handleBT();
+void stopBT();
 #endif
 
 //buttons.cpp

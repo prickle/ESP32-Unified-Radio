@@ -241,7 +241,7 @@ private:
     bool playChunk();
     bool playSample(int16_t sample[2]) ;
     void playI2Sremains();
-    int32_t Gain(int16_t s[2]);
+    int32_t Gain(float s[2]);
     bool fill_InputBuf();
     void showstreamtitle(const char* ml);
     bool parseContentType(const char* ct);
@@ -250,9 +250,9 @@ private:
     esp_err_t I2Sstart(uint8_t i2s_num);
     esp_err_t I2Sstop(uint8_t i2s_num);
     void urlencode(char* buff, uint16_t buffLen, bool spacesOnly = false);
-    int16_t* IIR_filterChain0(int16_t iir_in[2], bool clear = false);
-    int16_t* IIR_filterChain1(int16_t* iir_in, bool clear = false);
-    int16_t* IIR_filterChain2(int16_t* iir_in, bool clear = false);
+    void IIR_filterChain0(float* sample, bool clear = false);
+    void IIR_filterChain1(float* sample, bool clear = false);
+    void IIR_filterChain2(float* sample, bool clear = false);
     inline void setDatamode(uint8_t dm){m_datamode=dm;}
     inline uint8_t getDatamode(){return m_datamode;}
     inline uint32_t streamavail(){ return _client ? _client->available() : 0;}
