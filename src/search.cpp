@@ -484,7 +484,7 @@ void CreateStationQueues(){
 //Called from loop()
 // Get messages from the search client and dispatch actions from here
 void searchHandle() {
-  while (xQueueReceive(stationGetQueue, &stationRxMessage, 0) == pdPASS){
+  while (stationGetQueue && xQueueReceive(stationGetQueue, &stationRxMessage, 0) == pdPASS){
     if (stationRxMessage.cmd == STN_RESULT) addSearchResult(stationRxMessage.info);
     else if (stationRxMessage.cmd == STN_FINISHED) searchFinished();
   }

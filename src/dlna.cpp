@@ -401,7 +401,7 @@ lv_obj_t * addDlnaItem(dlnaInfo* info) {
 //Called from loop()
 // Get messages from the DLNA client and dispatch actions from here
 void DLNAHandle() {
-  while (xQueueReceive(dlnaGetQueue, &dlnaRxMessage, 0) == pdPASS){
+  while (dlnaGetQueue && xQueueReceive(dlnaGetQueue, &dlnaRxMessage, 0) == pdPASS){
     //Got DLNA item - add to list
     if (dlnaRxMessage.cmd == DLNA_ITEM) addDlnaItem(dlnaRxMessage.info);
     //Starting a server seek - long wait - put up a spinner

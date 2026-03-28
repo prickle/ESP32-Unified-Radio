@@ -10,7 +10,9 @@
 #ifndef WORKRADIO2
 #ifndef MINIRADIO
 #ifndef PANASONIC
+#ifndef PHILIPS
 #error At least one device must be defined!
+#endif
 #endif
 #endif
 #endif
@@ -43,6 +45,7 @@
 #define BATTERYMON
 //Using this LCD
 #define TFT_ST7796  //480x320
+#define TFT_ROTATION 3
 //#define VUMETER
 #define FFTMETER
 #endif
@@ -72,6 +75,7 @@
 //#define BATTERYMON
 //Using this LCD
 #define TFT_ST7796  //480x320
+#define TFT_ROTATION 3
 #define VUMETER
 #define LOG_REDIRECT
 #endif
@@ -125,6 +129,7 @@
 #define TFT_ILI9341_1
 #define TFT_WIDTH     320
 #define TFT_HEIGHT    240
+#define TFT_ROTATION  3
 #define TFT_BL        32 
 #define TFT_MOSI      23 
 #define TFT_MISO      19 
@@ -189,6 +194,7 @@
 //LCD display
 //Actually defined in TFT_eSPI
 #define TFT_ILI9341_2
+#define TFT_ROTATION  3
 #define TFT_MOSI      23
 #define TFT_MISO      19
 #define TFT_SCK       18
@@ -280,6 +286,80 @@
 
 #endif
 
+//================================
+//ESP32 Philips Radio
+// ESP32 Wrover with external coprocessor
+#ifdef PHILIPS
+#define HOSTNAME  "PHILIPS-"
+#define MDNS_NAME "philips"        //"philips.local"
+#define RADIONAME "Philips Shedradio"
+#define THEME_HIVIS
+//ESP32-WROVER
+//4M Flash, 4M PSRAM
+//Partition: With OTA
+#define LVGL_BUFF_SIZE  40                   //even number please..
+#define NUM_PRESETS 16
+#define PRESET_HEIGHT 70
+//Portrait display
+#define BIGWEATHER
+
+#define FFTMETER
+
+
+//External touchscreen and volume knob coprocessor
+#define TOUCH_VOLUME
+//3-band EQ
+#define EQUALIZER
+#define FORCE_MONO
+//Touch needs calibration routine
+#define CALITOUCH
+//Uncomment to turn on WIFI persistently and enable OTA
+//#define USE_OTA
+//Enable connections from Platformio - monitor_port = socket://deskradio.local:4444
+//#define MONITOR_PORT
+//Capture logging messages from ESP-IDF
+#define LOG_REDIRECT
+
+//I2S audio
+#define I2S_DOUT      23
+#define I2S_BCLK      22
+#define I2S_LRC       21
+
+//Control interface
+#define VOL_PIN       36
+#define TOUCH_RX      5
+#define TOUCH_TX      0
+#define TOUCH_PWR     32
+
+//LCD display
+//Setup
+//ILI9488 Parallel connection
+//Using TFT_eSPI
+#define USING_TFTESPI
+#define TFT_WIDTH     320
+#define TFT_HEIGHT    480
+#define TFT_ROTATION  0
+//TFT Pinout (actually defined in TFT_eSPI/User_Setup.h, just repeated here for convenience)
+#define TFT_CS   33  // Chip select control pin (library pulls permanently low
+#define TFT_DC   15  // Data Command control pin - use a pin in the range 0-31
+#define TFT_RST  -1  // Reset pin, toggles on startup
+#define TFT_WR    4  // Write strobe control pin - use a pin in the range 0-31
+#define TFT_RD    2  // Read strobe control pin  - use a pin in the range 0-31
+#define TFT_D0   12  // Must use pins in the range 0-31 for the data bus
+#define TFT_D1   13  // so a single register write sets/clears all bits.
+#define TFT_D2   26  // Pins can be randomly assigned, this does not affect
+#define TFT_D3   25  // TFT screen update performance.
+#define TFT_D4   19
+#define TFT_D5   18
+#define TFT_D6   27
+#define TFT_D7   14
+
+//Cannot use for I/O!
+#define PSRAM_1       16
+#define PSRAM_2       17
+
+#endif
+
 
 
 //-----------------------------------------------------------------------
@@ -290,8 +370,12 @@
 //Uncomment to turn on DMA transfers to TFT
 #define USE_DMA
 
+#ifdef USING_TFTESPI
+#include <TFT_eSPI.h>
+#else
 #define LGFX_USE_V1         // set to use new version of library
 #include <LovyanGFX.hpp>    // main library
+#endif
 #include <lvgl.h>     // Modified
 #include <EEPROM.h>
 #include <Ticker.h>
@@ -377,6 +461,10 @@ void prepareEncoders();
 void encodersHandle();
 void prepareButtons();
 void buttonsHandle();
+#ifdef TOUCH_VOLUME
+void touchSetup();
+void touchHandle();
+#endif
 
 //dab.cpp
 void startDab();
@@ -575,6 +663,7 @@ void listMenuActivate(lv_obj_t* menu);
 void setupModes();
 void setObjectVisibility();
 void setFunctionLbl(const char* txt);
+void activateFactoryMode();
 
 //sd.cpp
 boolean playFile(const char *file);

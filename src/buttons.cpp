@@ -296,3 +296,65 @@ void buttonsHandle() {
 }
 
 #endif
+
+//--------------------------------------------------------
+//Touchscreen and volume control coprocessor
+#ifdef TOUCH_VOLUME
+
+//Touchscreen results
+int tx, ty; 
+bool tz;
+
+//Volume control results
+int volPot = -1;
+
+
+bool firstComm = true;
+void touchSetup() {
+  serial.println("> Start coprocessor comms.");
+  Serial1.begin(115200, SERIAL_8N1, TOUCH_RX, TOUCH_TX);
+}
+
+//Read touch screen and volume control from Arduino coprocessor.
+void touchHandle() {
+  static int byteCount = 0;
+  static uint8_t checksum = 0;
+  static uint8_t vals[5];
+  while (Serial1.available()) {
+    int val = Serial1.read();
+    //Serial.print((char)val);
+    if (val >= 128) {
+      if (byteCount != 0) Serial.println("Warning: Coprocessor comms lost sync!");
+      byteCount = 0;
+      checksum = 0;
+    }
+    vals[byteCount++] = val;
+    if (byteCount == 5) {
+      if (checksum == val) {
+        if (firstComm) {
+          firstComm = false;
+          serial.println("> Coprocessor communication established.");
+        }
+        //Read touch values
+        tz = (vals[0] & 0x40) != 0;
+        ty = ((vals[0] & 0x3f) << 4) | ((vals[1] >> 3) & 0x0f);
+        tx = 1024 - (((vals[1] & 0x07) << 7) | vals[2]);
+        //Read volume pot
+        int v = (float)vals[3] / 127 * (VOLUME_STEPS + 1);
+        if (v != volPot) {
+          //Serial.print("Volume set to: ");
+          //Serial.println(v);
+          volPot = v;
+          setVolume(volPot);
+          if (dabVolSlider) lv_slider_set_value(dabVolSlider, volPot, LV_ANIM_OFF);
+        }
+      } 
+      else Serial.println("Warning: Coprocessor comms checksum error!");
+      byteCount = 0;
+    }
+    checksum += val;
+    checksum &= 0x7F;
+  }
+}
+
+#endif

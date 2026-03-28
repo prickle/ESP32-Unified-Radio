@@ -16,10 +16,14 @@ TaskHandle_t servicesTaskHandle;
 #define SRV_STACK_SIZE 8000 
 void startServicesTask();
 
+
+
 void setup(void)
 {
   //first init..
   Serial.begin(115200);           //Get arduino serial device going
+  
+  
   resetScreen();                  //Toggle the common reset line now
   initTerminalLog();              //Start buffering mySerial calls
   disableCore0WDT();              //Core 0 is saturated during large searches, quiet! bad dog!
@@ -47,6 +51,7 @@ void setup(void)
   i2cScan();
 #endif
 
+
   //Start internal filesystem
   initSPIFFS();
 
@@ -71,6 +76,9 @@ void setup(void)
 #endif
 #ifdef MINIBUTTONS
   prepareButtons();
+#endif
+#ifdef TOUCH_VOLUME
+  touchSetup();
 #endif
 #ifdef MONKEYBOARD
   initDab();
@@ -100,6 +108,8 @@ void setup(void)
 #ifdef BATTERYMON
   resetAmpHours();
 #endif
+  //Force factory mode
+  //activateFactoryMode();
 }
 
 //Just call the handlers for each feature
@@ -139,6 +149,9 @@ void loop() {
 #endif
 #ifdef MINIBUTTONS
   buttonsHandle();
+#endif
+#ifdef TOUCH_VOLUME
+  touchHandle();
 #endif
   weatherClientHandle();
 #ifdef NXP6686

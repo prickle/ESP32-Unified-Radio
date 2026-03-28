@@ -53,31 +53,20 @@ void createMainWindow(lv_obj_t * win) {
   //The main info container window
   infoContainer = lv_obj_create(mainWindow);
   //lv_cont_set_fit(infoContainer, LV_FIT_NONE);              //Fit the size to the content
-#if defined(VUMETER) || defined(FFTMETER)
+  int width = lv_obj_get_content_width(mainWindow);
 #if (TFT_WIDTH == 480)
-#ifdef FFTMETER
-  lv_obj_set_size(infoContainer, 460, 110);
-#else
-  lv_obj_set_size(infoContainer, 460, 102);
-#endif
   lv_obj_set_pos(infoContainer, 4, 4);
+  width -= 8;
 #else  
-#ifdef FFTMETER
-  lv_obj_set_size(infoContainer, 312, 110);
-#else
-  lv_obj_set_size(infoContainer, 312, 102);
-#endif
   lv_obj_set_pos(infoContainer, 0, 0);
 #endif
-#else
-#if (TFT_WIDTH == 480)
-  lv_obj_set_size(infoContainer, 460, 86);
-  lv_obj_set_pos(infoContainer, 4, 4);
-#else  
-  lv_obj_set_size(infoContainer, 312, 86);
-  lv_obj_set_pos(infoContainer, 0, 0);
+  int height = 86;
+#if defined(VUMETER)
+  height = 102;
+#elif defined(FFTMETER)
+  height = 110;
 #endif
-#endif
+  lv_obj_set_size(infoContainer, width, height);
   lv_obj_add_style(infoContainer, &style_groupbox, LV_PART_MAIN);
   lv_obj_clear_flag(infoContainer, LV_OBJ_FLAG_SCROLLABLE);
   //lv_obj_set_click(infoContainer, false);            //Allow page scroll
@@ -141,11 +130,7 @@ void createMainWindow(lv_obj_t * win) {
   //Info labels
   progNameLbl = lv_label_create(infoContainer); //First parameters (scr) is the parent
   lv_label_set_long_mode(progNameLbl, LV_LABEL_LONG_SCROLL_CIRCULAR);
-#if (TFT_WIDTH == 480) 
-  lv_obj_set_size(progNameLbl, 346, LV_SIZE_CONTENT);
-#else
-  lv_obj_set_size(progNameLbl, 204, LV_SIZE_CONTENT);
-#endif
+  lv_obj_set_size(progNameLbl, width - 110, LV_SIZE_CONTENT);
   lv_obj_add_style(progNameLbl, &style_biggestfont, LV_PART_MAIN);
   lv_obj_set_style_anim_speed(progNameLbl, 20, LV_PART_MAIN);
   lv_label_set_text(progNameLbl, "");  //Set the text
@@ -157,11 +142,7 @@ void createMainWindow(lv_obj_t * win) {
   lv_obj_add_style(reloadBtn, &style_wp, LV_PART_MAIN);
   lv_obj_add_style(reloadBtn, &style_bigfont_orange, LV_PART_MAIN);
   lv_obj_add_style(reloadBtn, &style_bigfont_orange, LV_PART_SELECTED);
-#if (TFT_WIDTH == 480)
-  lv_obj_align_to(reloadBtn, bufLvlMeter, LV_ALIGN_OUT_RIGHT_TOP, 316, 0);
-#else
-  lv_obj_align_to(reloadBtn, bufLvlMeter, LV_ALIGN_OUT_RIGHT_TOP, 176, 0);
-#endif
+  lv_obj_align_to(reloadBtn, bufLvlMeter, LV_ALIGN_OUT_RIGHT_TOP, width - 136, 0);
   lv_obj_add_event_cb(reloadBtn, reload_action, LV_EVENT_CLICKED, NULL);
   lv_obj_t * label = lv_label_create(reloadBtn);
   lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
@@ -171,60 +152,40 @@ void createMainWindow(lv_obj_t * win) {
   //Loading spinner
   loadSpinner = lv_spinner_create(infoContainer, 1000, 60);
   lv_obj_set_size(loadSpinner, 35, 35);
-#if (TFT_WIDTH == 480)
-  lv_obj_align_to(loadSpinner, bufLvlMeter, LV_ALIGN_OUT_RIGHT_TOP, 321, -1);
-#else
-  lv_obj_align_to(loadSpinner, bufLvlMeter, LV_ALIGN_OUT_RIGHT_TOP, 181, -1);
-#endif
+  lv_obj_align_to(loadSpinner, bufLvlMeter, LV_ALIGN_OUT_RIGHT_TOP, width - 131, -1);
   lv_obj_set_hidden(loadSpinner, true);
 
   progNowLbl = lv_label_create(infoContainer); //First parameters (scr) is the parent
-#if (TFT_WIDTH == 480)
-  lv_obj_set_size(progNowLbl, 346, LV_SIZE_CONTENT);
-#else
-  lv_obj_set_size(progNowLbl, 204, LV_SIZE_CONTENT);
-#endif
+  lv_obj_set_size(progNowLbl, width - 108, LV_SIZE_CONTENT);
   lv_obj_add_style(progNowLbl, &style_bigfont, LV_PART_MAIN);
   lv_label_set_long_mode(progNowLbl, LV_LABEL_LONG_SCROLL_CIRCULAR);
   lv_obj_align_to(progNowLbl, progNameLbl, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);  //Align below the label
   lv_label_set_text(progNowLbl, "");  //Set the text
   
   progTimeBar = lv_bar_create(infoContainer);
-#if (TFT_WIDTH == 480)
-  lv_obj_set_size(progTimeBar, 346, 10);
-#else
-  lv_obj_set_size(progTimeBar, 204, 10);
-#endif
+  lv_obj_set_size(progTimeBar, width - 108, 10);
   lv_obj_align_to(progTimeBar, progNowLbl, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 8);  //Align below the label
   lv_bar_set_range(progTimeBar, 0, 100);
   lv_bar_set_value(progTimeBar, 0, LV_ANIM_OFF);
   lv_obj_set_hidden(progTimeBar, true);
   
   progTextLbl = lv_label_create(infoContainer); //First parameters (scr) is the parent
-#if (TFT_WIDTH == 480)
-  lv_obj_set_size(progTextLbl, 346, LV_SIZE_CONTENT);
-#else
-  lv_obj_set_size(progTextLbl, 204, LV_SIZE_CONTENT);
-#endif
+  lv_obj_set_size(progTextLbl, width - 108, LV_SIZE_CONTENT);
   lv_obj_add_style(progTextLbl, &style_bigfont, LV_PART_MAIN);
   lv_label_set_long_mode(progTextLbl, LV_LABEL_LONG_SCROLL_CIRCULAR);
   lv_obj_align_to(progTextLbl, progNowLbl, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);
   lv_label_set_text(progTextLbl, "");  //Set the text
 
 #ifdef VUMETER
-#if (TFT_WIDTH == 480)
-  vuMeter = createVU(infoContainer, 442, 6, lv_color_hex(0x101010).full);
-#else
-  vuMeter = createVU(infoContainer, 312, 6, lv_color_hex(0x101010).full);
-#endif
+  vuMeter = createVU(infoContainer, width - 8, 6, lv_color_hex(0x101010).full);
   lv_obj_set_pos(vuMeter, 4, 76);
 #endif
 
 #ifdef FFTMETER
-#if (TFT_WIDTH == 480)
-  fftMeter = createFFT(infoContainer, 434, 24, lv_color_hex(0x101010).full);
+#ifdef THEME_HIVIS
+  fftMeter = createFFT(infoContainer, width - 18, 24, lv_color_black().full);
 #else
-  fftMeter = createFFT(infoContainer, 294, 24, lv_color_hex(0x101010).full);
+  fftMeter = createFFT(infoContainer, width - 18, 24, lv_color_hex(0x101010).full);
 #endif
   lv_obj_set_pos(fftMeter, 4, 72);
 #endif
@@ -379,12 +340,12 @@ void realignMainWindow() {
   if (receiverShowing) above = receiverWidget;
 #endif
   if (weatherWidget) {
-#if (TFT_HEIGHT == 240)
+#if (TFT_HEIGHT == 240) || defined(BIGWEATHER)
     lv_obj_align_to(weatherWidget, above, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
 #else
     lv_obj_align_to(weatherWidget, above, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);
-  }
 #endif
+  }
 }
 
 void createWeather() {

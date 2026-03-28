@@ -91,7 +91,7 @@ void FTPHandle() {
     }
   }
   char msg[64];
-  if(xQueueReceive(ftpMsgQueue, &msg, 0) == pdPASS) info(NOW, 0, msg);
+  if(ftpMsgQueue && xQueueReceive(ftpMsgQueue, &msg, 0) == pdPASS) info(NOW, 0, msg);
 }
 
 //Trigger for ftpPopulateAction()

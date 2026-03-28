@@ -1,7 +1,10 @@
 #include "decls.h"
 
-
+#ifdef USING_TFTESPI
+TFT_eSPI tft = TFT_eSPI();
+#else
 static LGFX tft;            // declare display variable
+#endif
 
 #define LVGL_TICK_PERIOD 5
 Ticker tick; /* timer for interrupt handler */
@@ -23,7 +26,9 @@ bool ScreenSaverActive = false;
 void LVdispFlush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p );
 static void LVtickHandler(void);
 void LVinputRead(lv_indev_drv_t * drv, lv_indev_data_t*data);
-
+#if LV_USE_LOG != 0
+void LVlogPrint(const char * buf);
+#endif
 
 //Display driver
 void initLVGL()  {
@@ -69,16 +74,25 @@ void resetScreen() {
 void initScreen() {
   // Setup the LCD
   tft.init();
-  tft.setRotation(3);
-  tft.fillScreen(TFT_BLACK);  
-  tft.setBrightness(settings->brightness);
+#ifdef TFT_ROTATION  
+  tft.setRotation(TFT_ROTATION);
+#endif
+  tft.fillScreen(TFT_BLACK); 
+  setBrightness(settings->brightness);
   //Start LVGL
   initLVGL();
   screenInit();
 }
 
 void setBrightness(uint8_t bright) {
-  tft.setBrightness(bright);  
+#ifdef USING_TFTESPI   
+#ifdef TFT_BL
+  pinMode(TFT_BL, OUTPUT);
+  analogWrite(TFT_BL, bright << 2);
+#endif
+#else
+  tft.setBrightness(settings->brightness);
+#endif
 }
 
 //*** LVGL : Setup & Initialize the input device driver ***
@@ -143,7 +157,11 @@ bool tft_output(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t* bitmap) 
   tft.pushPixels(bitmap, w * h);
 #else
   /*Pixel format: Red: 5 bit, Green: 6 bit, Blue: 5 bit BUT the 2 bytes are swapped*/
+#ifdef USING_TFTESPI
+  tft.pushColors(bitmap, w * h, true);
+#else
   tft.pushPixels(bitmap, w * h, true);
+#endif
 #endif
   tft.endWrite();
   return 1;
@@ -179,6 +197,32 @@ void LVinputRead(lv_indev_drv_t * drv, lv_indev_data_t*data) {
   x = px;
   y = py;
   touched = rz;
+}
+
+#elif defined(TOUCH_VOLUME)
+//My touchscreen is noisy and needs extra conditioning
+//that's an understatement, now using an arduino to read the touch, see "touch" 
+void LVinputRead(lv_indev_drv_t * drv, lv_indev_data_t*data)
+{
+  //uint16_t rx, ry;
+  int16_t x, y;
+  static int16_t lx = 0, ly = 0;
+  static bool touched = false;
+  data->state = tz? LV_INDEV_STATE_PR : LV_INDEV_STATE_REL;
+  if (tz) screenSaverInteraction();
+  // Scale from ~0->4000 to tft.width using the calibration #'s
+  x = map(tx, 0, 1024, 0, tft.width() - 1);
+  y = map(ty, 0, 1024, 0, tft.height() - 1);
+  if (!tz && touched) {
+    data->point.x = lx;
+    data->point.y = ly;
+  } else {
+    data->point.x = x;
+    data->point.y = y;
+  }
+  lx = x;
+  ly = y;
+  touched = tz;
 }
 
 #else

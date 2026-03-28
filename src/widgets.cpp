@@ -232,6 +232,7 @@ typedef struct fftImg {
   lv_img_dsc_t img_dsc;
   uint8_t barWidth;
   uint8_t numBars;
+  uint16_t backCol;
 } fftImg;
 
 int fft_prev_y[64] = { 0 };
@@ -241,7 +242,7 @@ lv_obj_t* createFFT(lv_obj_t* parent, int w, int h, uint16_t backCol) {
   fftImg* fft = new fftImg;
   lv_obj_t *img = lv_img_create(parent);
   fft->img = new GFXcanvas16(w, h);
-  fft->img->fillRect(0, 0, w, h, (fft->img->backCol = backCol));
+  fft->img->fillRect(0, 0, w, h, (fft->backCol = backCol));
   fft->barWidth = w / FFT_BARS;
   fft->numBars = w / fft->barWidth;
   if (fft->numBars > 64) fft->numBars = 64;
@@ -271,7 +272,7 @@ void drawFFT(lv_obj_t* obj, uint8_t* data) {
     }
     float pk = fft_peak_y[bar];
     if (pk > y) {
-      fftBuffer->drawFastHLine(x, h - pk - 1, fft->barWidth - 1, fft->img->backCol);
+      fftBuffer->drawFastHLine(x, h - pk - 1, fft->barWidth - 1, fft->backCol);
       pk-=0.5;
     }
     else pk = y;
