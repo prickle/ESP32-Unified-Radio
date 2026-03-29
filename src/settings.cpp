@@ -127,10 +127,6 @@ void readKeys() {
     strcpy(podcast_secret, PODCAST_SECRET);
 #endif
   }    
-  serial.println(weather_location);
-  serial.println(weather_owmkey);
-  serial.println(podcast_key);
-  serial.println(podcast_secret);
 }
 
 bool readKeyFile(const char* filename) {

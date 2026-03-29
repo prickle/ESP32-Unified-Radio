@@ -434,7 +434,7 @@ void weatherShrunkAction(lv_anim_t * a) {
 //Called from wifiHandle on first connect
 void weatherBegin() {
   //First fetch in 20 seconds from first connect
-  if (!weatherConnectionTime) weatherConnectionTime = millis() + 20000;
+  if (weatherGetQueue && !weatherConnectionTime) weatherConnectionTime = millis() + 20000;
 }
 
 //Called from loop
