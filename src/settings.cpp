@@ -220,21 +220,24 @@ void createSettingsWindow(lv_obj_t * page) {
 
   lv_obj_add_style(page, &style_bigfont, LV_PART_MAIN);
 
-      //The main info container window
-    mainContainer = lv_obj_create(page);
-    int height = 116;
+  //The main info container window
+  mainContainer = lv_obj_create(page);
+  int height = 116;
 #ifdef EQUALIZER
-    height += 94;
+  height += 94;
 #endif
 #ifndef FORCE_MONO
-    height += 36;
+  height += 36;
 #endif
+  int width = lv_obj_get_content_width(page);
 #if (TFT_WIDTH == 480)
-    lv_obj_set_size(mainContainer, 460, height);
+  lv_obj_set_pos(mainContainer, 4, 8);
+  width -= 8;
 #else  
-    lv_obj_set_size(mainContainer, 308, height);
+  lv_obj_set_pos(mainContainer, 0, 0);
 #endif
-    lv_obj_set_pos(mainContainer, 4, 8);
+
+    lv_obj_set_size(mainContainer, width, height);
     lv_obj_add_style(mainContainer, &style_groupbox, LV_PART_MAIN);
     lv_obj_clear_flag(mainContainer, LV_OBJ_FLAG_SCROLLABLE);
  
@@ -243,11 +246,7 @@ void createSettingsWindow(lv_obj_t * page) {
     lv_obj_set_pos(volDABLbl, 10, 10);
     lv_label_set_text(volDABLbl, "Master Vol");  //Set the text
     dabVolSlider = lv_slider_create(mainContainer);                            //Create a slider
-#if (TFT_WIDTH == 480)
-    lv_obj_set_size(dabVolSlider, 344, 18);   //Set the size
-#else
-    lv_obj_set_size(dabVolSlider, 190, 18);   //Set the size
-#endif
+    lv_obj_set_size(dabVolSlider, width - 116, 18);   //Set the size
     lv_obj_align_to(dabVolSlider, volDABLbl, LV_ALIGN_OUT_RIGHT_MID, 10, 0);         //Align next to the slider
     lv_slider_set_range(dabVolSlider, 0, VOLUME_STEPS);                                            //Set the current value
     lv_slider_set_value(dabVolSlider, settings->dabVolume, LV_ANIM_OFF);
@@ -364,11 +363,7 @@ void createSettingsWindow(lv_obj_t * page) {
 #endif
     lv_label_set_text(brightLbl, "Brightness");  //Set the text
     brightSlider = lv_slider_create(mainContainer);                            //Create a slider
-#if (TFT_WIDTH == 480)
-    lv_obj_set_size(brightSlider, 338, 18);   //Set the size
-#else
-    lv_obj_set_size(brightSlider, 184, 18);   //Set the size
-#endif
+    lv_obj_set_size(brightSlider, width - 122, 18);   //Set the size
     lv_obj_align_to(brightSlider, brightLbl, LV_ALIGN_OUT_RIGHT_MID, 10, 0);         //Align next to the slider
     lv_slider_set_range(brightSlider, 8, 255);                                            //Set the current value
     lv_slider_set_value(brightSlider, settings->brightness, LV_ANIM_OFF);
@@ -392,11 +387,7 @@ void createSettingsWindow(lv_obj_t * page) {
     // -- WIFI controls
       //The WIFI info container window
     wifiContainer = lv_obj_create(page);
-#if (TFT_WIDTH == 480)
-    lv_obj_set_size(wifiContainer, 460, 80);
-#else  
-    lv_obj_set_size(wifiContainer, 308, 80);
-#endif
+    lv_obj_set_size(wifiContainer, width, 80);
     lv_obj_add_style(wifiContainer, &style_groupbox, LV_PART_MAIN);
     lv_obj_clear_flag(wifiContainer, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_align_to(wifiContainer, mainContainer, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);         //Align next to the slider
@@ -408,11 +399,7 @@ void createSettingsWindow(lv_obj_t * page) {
     lv_obj_set_pos(btn_label, 10, 10);                //Align below the first button
     wifiNetworkList = lv_dropdown_create(wifiContainer);
     lv_obj_align_to(wifiNetworkList, btn_label, LV_ALIGN_OUT_RIGHT_MID, 10, 0);         //Align next to the slider
-#if (tft_width == 480)
-    lv_obj_set_width(wifiNetworkList, 390);                //Align below the first button
-#else
-    lv_obj_set_width(wifiNetworkList, 236);                //Align below the first button
-#endif
+    lv_obj_set_width(wifiNetworkList, width - 70);                //Align below the first button
     lv_obj_add_event_cb(wifiNetworkList, wifiSelectedAction, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(wifiNetworkList, wifiScanAction, LV_EVENT_CLICKED, NULL);
     lv_obj_add_event_cb(wifiNetworkList, wifiLongPressAction, LV_EVENT_LONG_PRESSED, NULL);
@@ -424,11 +411,7 @@ void createSettingsWindow(lv_obj_t * page) {
     //setWifiStatus(getWlanState());
 
     passwordEditText = lv_textarea_create(wifiContainer);
-#if (TFT_WIDTH == 480)
-    lv_obj_set_size(passwordEditText, 390, 20);
-#else
-    lv_obj_set_size(passwordEditText, 236, 20);
-#endif
+    lv_obj_set_size(passwordEditText, width - 70, 20);
     lv_obj_align_to(passwordEditText, wifiNetworkList, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 9);         //Align next to the slider
     lv_obj_add_style(passwordEditText, &style_ta, LV_PART_MAIN);
     lv_textarea_set_text_selection(passwordEditText, false);
@@ -446,11 +429,7 @@ void createSettingsWindow(lv_obj_t * page) {
 
     // -- FTP controls
     ftpContainer = lv_obj_create(page);
-#if (TFT_WIDTH == 480)
-    lv_obj_set_size(ftpContainer, 460, 116);
-#else  
-    lv_obj_set_size(ftpContainer, 308, 116);
-#endif
+    lv_obj_set_size(ftpContainer, width, 116);
     lv_obj_add_style(ftpContainer, &style_groupbox, LV_PART_MAIN);
     lv_obj_clear_flag(ftpContainer, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_align_to(ftpContainer, wifiContainer, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);         //Align next to the slider
@@ -461,11 +440,7 @@ void createSettingsWindow(lv_obj_t * page) {
     lv_obj_set_pos(btn_label, 10, 12);                //Align below the first button
 
     ftpServerText = lv_textarea_create(ftpContainer);
-#if (TFT_WIDTH == 480)
-    lv_obj_set_size(ftpServerText, 390, 20);
-#else
-    lv_obj_set_size(ftpServerText, 270, 20);
-#endif
+    lv_obj_set_size(ftpServerText, width - 70, 20);
     lv_obj_align_to(ftpServerText, btn_label, LV_ALIGN_OUT_RIGHT_MID, 16, 0);         //Align next to the slider
     lv_obj_add_style(ftpServerText, &style_ta, LV_PART_MAIN);
     lv_textarea_set_text_selection(ftpServerText, false);
@@ -477,11 +452,7 @@ void createSettingsWindow(lv_obj_t * page) {
     lv_obj_set_pos(btn_label, 10, 43);                //Align below the first button
 
     ftpUserText = lv_textarea_create(ftpContainer);
-#if (TFT_WIDTH == 480)
-    lv_obj_set_size(ftpUserText, 390, 20);
-#else
-    lv_obj_set_size(ftpUserText, 270, 20);
-#endif
+    lv_obj_set_size(ftpUserText, width - 70, 20);
     lv_obj_align_to(ftpUserText, ftpServerText, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);         //Align next to the slider
     lv_obj_add_style(ftpUserText, &style_ta, LV_PART_MAIN);
     lv_textarea_set_text_selection(ftpUserText, false);
@@ -494,11 +465,7 @@ void createSettingsWindow(lv_obj_t * page) {
     lv_obj_set_pos(btn_label, 10, 74);                //Align below the first button
 
     ftpPassText = lv_textarea_create(ftpContainer);
-#if (TFT_WIDTH == 480)
-    lv_obj_set_size(ftpPassText, 354, 20);
-#else
-    lv_obj_set_size(ftpPassText, 234, 20);
-#endif
+    lv_obj_set_size(ftpPassText, width - 106, 20);
     lv_obj_align_to(ftpPassText, ftpUserText, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);         //Align next to the slider
     lv_obj_add_style(ftpPassText, &style_ta, LV_PART_MAIN);
     lv_textarea_set_text_selection(ftpPassText, false);
@@ -521,11 +488,7 @@ void createSettingsWindow(lv_obj_t * page) {
     // -- DAB controls
       //The DAB Radio info container window
     dabContainer = lv_obj_create(page);
-#if (TFT_WIDTH == 480)
-    lv_obj_set_size(dabContainer, 460, 120);
-#else  
-    lv_obj_set_size(dabContainer, 308, 120);
-#endif
+    lv_obj_set_size(dabContainer, width, 120);
     lv_obj_add_style(dabContainer, &style_groupbox, LV_PART_MAIN);
     lv_obj_clear_flag(dabContainer, LV_OBJ_FLAG_SCROLLABLE);
 #ifdef USE_OTA  
@@ -582,11 +545,7 @@ void createSettingsWindow(lv_obj_t * page) {
 
     //Time settings
     timeContainer = lv_obj_create(page);
-#if (TFT_WIDTH == 480)
-    lv_obj_set_size(timeContainer, 460, 80);
-#else  
-    lv_obj_set_size(timeContainer, 308, 80);
-#endif
+    lv_obj_set_size(timeContainer, width, 80);
     lv_obj_align_to(timeContainer, dabContainer, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);         //Align next to the slider
     lv_obj_add_style(timeContainer, &style_groupbox, LV_PART_MAIN);
     lv_obj_clear_flag(timeContainer, LV_OBJ_FLAG_SCROLLABLE);
@@ -609,11 +568,7 @@ void createSettingsWindow(lv_obj_t * page) {
 
     
     tzEditText = lv_textarea_create(timeContainer);
-#if (TFT_WIDTH == 480)
-    lv_obj_set_size(tzEditText, 330, 20);
-#else
-    lv_obj_set_size(tzEditText, 176, 20);
-#endif
+    lv_obj_set_size(tzEditText, width - 130, 20);
     lv_obj_align_to(tzEditText, tzLabel, LV_ALIGN_OUT_RIGHT_MID, 20, 0);         //Align next to the slider
     lv_obj_add_style(tzEditText, &style_ta, LV_PART_MAIN);
     lv_obj_add_event_cb(tzEditText, tzEditAction, LV_EVENT_PRESSED, NULL);
