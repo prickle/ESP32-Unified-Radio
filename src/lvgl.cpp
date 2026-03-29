@@ -91,7 +91,7 @@ void setBrightness(uint8_t bright) {
   analogWrite(TFT_BL, bright << 2);
 #endif
 #else
-  tft.setBrightness(settings->brightness);
+  tft.setBrightness(bright);
 #endif
 }
 
@@ -276,6 +276,9 @@ void pumpLvgl() {
   while(millis() < timer + 20) {
     delay(1);
     lv_task_handler();  
+#ifdef TOUCH_VOLUME
+    touchHandle();
+#endif
   }
 }
 
@@ -369,7 +372,7 @@ void SPIFFSfileSystemInit() {
   spiffs_drv.seek_cb = spiffs_seek;                 /*Callback to seek in a file (Move cursor) */
   spiffs_drv.tell_cb = spiffs_tell;                 /*Callback to tell the cursor position  */  
   lv_fs_drv_register(&spiffs_drv);                 /*Finally register the drive*/  
-  serial.println("Driver OK.");
+  serial.println("OK.");
 }
 
 

@@ -194,6 +194,8 @@
 //LCD display
 //Actually defined in TFT_eSPI
 #define TFT_ILI9341_2
+#define TFT_WIDTH     320
+#define TFT_HEIGHT    240
 #define TFT_ROTATION  3
 #define TFT_MOSI      23
 #define TFT_MISO      19
@@ -467,6 +469,7 @@ void prepareButtons();
 void buttonsHandle();
 #ifdef TOUCH_VOLUME
 void touchSetup();
+void waitForTouch();
 void touchHandle();
 #endif
 

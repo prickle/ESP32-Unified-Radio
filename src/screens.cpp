@@ -180,7 +180,11 @@ void screenInit(void) {
 
   //Setup some styles
   lv_style_init(&style_bigfont);
+#ifdef THEME_HIVIS  
+  lv_style_set_text_font(&style_bigfont, &lv_font_terminal12);
+#else
   lv_style_set_text_font(&style_bigfont, &lv_font_montserrat_14);
+#endif
   lv_style_init(&style_biggerfont);
   lv_style_set_text_font(&style_biggerfont, &lv_font_montserrat_16);
   lv_style_init(&style_biggestfont);
@@ -396,11 +400,7 @@ void screenInit(void) {
   lv_obj_set_style_bg_opa(factoryBtn, LV_OPA_0, LV_PART_MAIN);
   lv_obj_set_style_border_opa(factoryBtn, LV_OPA_0, LV_PART_MAIN);
   lv_obj_set_size(factoryBtn, 100, 100);
-#if (TFT_WIDTH == 480)
-  lv_obj_set_pos(factoryBtn, 375, 215);
-#else
-  lv_obj_set_pos(factoryBtn, 215, 135);
-#endif
+  lv_obj_set_pos(factoryBtn, TFT_WIDTH - 105, TFT_HEIGHT - 105);
   lv_obj_add_event_cb(factoryBtn, factoryModeActivated, LV_EVENT_PRESSING, NULL);
 
 }

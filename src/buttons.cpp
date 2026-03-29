@@ -13,6 +13,7 @@ void powerButton() {
     clearStations();
     setBrightness(0);
     setVolume(0);
+    delay(500);
   } else {
     setBrightness(settings->brightness);
     setupWifi();
@@ -315,6 +316,11 @@ void touchSetup() {
   Serial1.begin(115200, SERIAL_8N1, TOUCH_RX, TOUCH_TX);
 }
 
+void waitForTouch() {
+  serial.println("> Wait for coprocessor.");
+  while(!Serial1.available()) {terminalHandle();}
+}
+
 //Read touch screen and volume control from Arduino coprocessor.
 void touchHandle() {
   static int byteCount = 0;
@@ -324,7 +330,7 @@ void touchHandle() {
     int val = Serial1.read();
     //Serial.print((char)val);
     if (val >= 128) {
-      if (byteCount != 0) Serial.println("Warning: Coprocessor comms lost sync!");
+      if (byteCount != 0) log_w("Warning: Coprocessor comms lost sync!");
       byteCount = 0;
       checksum = 0;
     }
@@ -349,7 +355,7 @@ void touchHandle() {
           if (dabVolSlider) lv_slider_set_value(dabVolSlider, volPot, LV_ANIM_OFF);
         }
       } 
-      else Serial.println("Warning: Coprocessor comms checksum error!");
+      else log_w("Warning: Coprocessor comms checksum error!");
       byteCount = 0;
     }
     checksum += val;

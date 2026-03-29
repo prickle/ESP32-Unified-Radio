@@ -79,6 +79,7 @@ void setup(void)
 #endif
 #ifdef TOUCH_VOLUME
   touchSetup();
+  waitForTouch();
 #endif
 #ifdef MONKEYBOARD
   initDab();
@@ -96,12 +97,11 @@ void setup(void)
 #endif
   webradioSetup();
   setupWeather();
-  setRadioMode(settings->mode);
   startServicesTask();
-
   //All done, get ready for loop()
   if (!startupError) serial.println("> Setup OK - entering main loop.");
   else serial.println(LV_SYMBOL_WARNING " Error during setup, continuing..");
+  setRadioMode(settings->mode);
   terminalHandle();
   serial.InSetup = false;   //Turn off mySerial pumping
   screenSaverInteraction();

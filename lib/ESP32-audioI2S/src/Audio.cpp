@@ -4543,7 +4543,6 @@ void Audio::IIR_filterChain0(float sample[2], bool clear){  // Infinite Impulse 
 
     uint8_t z1 = 0, z2 = 1;
     enum: uint8_t {in = 0, out = 1};
-    static int16_t iir_out[2];
     float outSample[2];
 
     if(clear){

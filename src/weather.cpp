@@ -113,7 +113,9 @@ lv_obj_t * createWeatherWidget(lv_obj_t * parent) {
 
   static lv_style_t style_font;
   lv_style_init(&style_font);
-#if (TFT_WIDTH == 480)
+#ifdef THEME_HIVIS
+  lv_style_set_text_font(&style_font, &lv_font_terminal12);
+#elif (TFT_WIDTH == 480)
   lv_style_set_text_font(&style_font, &lv_font_montserrat_16);
 #else
   lv_style_set_text_font(&style_font, &lv_font_montserrat_14);
