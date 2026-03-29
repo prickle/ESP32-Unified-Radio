@@ -1368,7 +1368,7 @@ void createFactoryWindow() {
   lv_label_set_text(label, LV_SYMBOL_LOOP);
   transferPodcastsLbl = lv_label_create(win_content);
   lv_obj_add_style(transferPodcastsLbl, &style_font, LV_PART_MAIN);
-  lv_label_set_text(transferPodcastsLbl, "Transfer Podcasts from SD\n" PODLIST_COPY);
+  lv_label_set_text(transferPodcastsLbl, "Transfer Podcasts to/from SD\n" PODLIST_COPY);
   lv_obj_align_to(transferPodcastsLbl, transferPodcastsBtn, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
 #endif
 
@@ -1404,7 +1404,7 @@ void createFactoryWindow() {
   lv_label_set_text(label, LV_SYMBOL_LOOP);
   transferStationsLbl = lv_label_create(win_content);
   lv_obj_add_style(transferStationsLbl, &style_font, LV_PART_MAIN);
-  lv_label_set_text(transferStationsLbl, "Transfer Webstations from SD\n" WEBSTATIONS_COPY);
+  lv_label_set_text(transferStationsLbl, "Transfer Webstations to/from SD\n" WEBSTATIONS_COPY);
   lv_obj_align_to(transferStationsLbl, transferStationsBtn, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
 #endif
 
@@ -1510,22 +1510,50 @@ void factoryRemovePodcasts(lv_event_t * event) {
   lv_label_set_text(removePodcastsLbl, "Podcast file deleted " LV_SYMBOL_OK);
   lv_obj_align_to(removePodcastsLbl, removePodcastsBtn, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
 }
-void factoryTransferPodcasts(lv_event_t * event) {
-  if (transferPodcasts())
-    lv_label_set_text(transferPodcastsLbl, "Podcast file transferred " LV_SYMBOL_OK);
-  else lv_label_set_text(transferPodcastsLbl, "Podcast file not found! " LV_SYMBOL_WARNING);
+static void factoryTransferPodAction(lv_event_t * e) {
+  lv_obj_t * obj = lv_event_get_current_target(e);
+  if (lv_msgbox_get_active_btn_text(obj)[0] == 'T') { // "To SD"
+    if (transferPodcasts(false))
+      lv_label_set_text(transferPodcastsLbl, "Podcast file copied to SD " LV_SYMBOL_OK);
+    else lv_label_set_text(transferPodcastsLbl, "Podcast file not found! " LV_SYMBOL_WARNING);
+  }
+  else if (lv_msgbox_get_active_btn_text(obj)[0] == 'F') { // "From SD"
+    if (transferPodcasts(true))
+      lv_label_set_text(transferPodcastsLbl, "Podcast file copied from SD " LV_SYMBOL_OK);
+    else lv_label_set_text(transferPodcastsLbl, "Podcast file not found! " LV_SYMBOL_WARNING);
+  }
   lv_obj_align_to(transferPodcastsLbl, transferPodcastsBtn, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
+}
+void factoryTransferPodcasts(lv_event_t * event) {
+  static const char * btns[] = {"To SD", "From SD", ""};
+  lv_obj_t * mbox1 = lv_msgbox_create(NULL, "Podcast File", "Transfer podcast file to or from SD?", btns, true);
+  lv_obj_add_event_cb(mbox1, factoryTransferPodAction, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_center(mbox1);
 }
 void factoryRemoveStations(lv_event_t * event) {
   removeWebStations();
   lv_label_set_text(removeStationsLbl, "Stations file deleted " LV_SYMBOL_OK);
   lv_obj_align_to(removeStationsLbl, removeStationsBtn, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
 }
-void factoryTransferStations(lv_event_t * event) {
-  if (transferWebStations())
-    lv_label_set_text(transferStationsLbl, "Stations file transferred " LV_SYMBOL_OK);
-  else lv_label_set_text(transferPodcastsLbl, "Stations file not found! " LV_SYMBOL_WARNING);
+static void factoryTransferStationAction(lv_event_t * e) {
+  lv_obj_t * obj = lv_event_get_current_target(e);
+  if (lv_msgbox_get_active_btn_text(obj)[0] == 'T') { // "To SD"
+    if (transferPodcasts(false))
+      lv_label_set_text(transferStationsLbl, "Station file copied to SD " LV_SYMBOL_OK);
+    else lv_label_set_text(transferStationsLbl, "Station file not found! " LV_SYMBOL_WARNING);
+  }
+  else if (lv_msgbox_get_active_btn_text(obj)[0] == 'F') { // "From SD"
+    if (transferPodcasts(true))
+      lv_label_set_text(transferStationsLbl, "Station file copied from SD " LV_SYMBOL_OK);
+    else lv_label_set_text(transferStationsLbl, "Station file not found! " LV_SYMBOL_WARNING);
+  }
   lv_obj_align_to(transferStationsLbl, transferStationsBtn, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
+}
+void factoryTransferStations(lv_event_t * event) {
+  static const char * btns[] = {"To SD", "From SD", ""};
+  lv_obj_t * mbox1 = lv_msgbox_create(NULL, "Webstations File", "Transfer webstation file to or from SD?", btns, true);
+  lv_obj_add_event_cb(mbox1, factoryTransferStationAction, LV_EVENT_VALUE_CHANGED, NULL);
+  lv_obj_center(mbox1);
 }
 void factoryRemoveFtpPlaylist(lv_event_t * event) {
   removePlaylist(FTPPLAYLIST_PATH);

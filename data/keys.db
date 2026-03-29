@@ -1,0 +1,7 @@
+//Open Weather Map
+WEATHER_LOCATION Melbourne,au
+WEATHER_OWMKEY your_key_here
+
+//podcastindex.org
+PODCAST_KEY your_key_here
+PODCAST_SECRET your_secret_here

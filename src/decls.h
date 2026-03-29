@@ -616,8 +616,9 @@ void initPodcast();
 void readPodcasts();
 void clearPodEpisodes();
 void podStop();
+void writePodcasts(const char* path);
 void removePodcasts();
-bool transferPodcasts();
+bool transferPodcasts(bool tofrom);
 void podPlayLatestEpisode(int id);
 
 //presets.cpp
@@ -625,7 +626,6 @@ void createPresetsWindow(lv_obj_t * parent);
 void updateUrlEditText();
 void setPlaylistBtnVisibility();
 void showPresets(bool yesno);
-void writePodcasts();
 void renamePreset(const char* oldname, const char* newname);
 void deletePreset(const char* name);
 

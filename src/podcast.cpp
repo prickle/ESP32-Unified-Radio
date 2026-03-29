@@ -189,7 +189,7 @@ void podWindow_search_action(lv_event_t * event) {
 //Call after list changes to handle autosave
 void podcastsChanged() {
   if (settings->autosave) {
-    writePodcasts();
+    writePodcasts(PODLIST_PATH);
   } else {
     podcastsModified = true;
   }
@@ -216,7 +216,7 @@ void podWindow_del_action(lv_event_t * event) {
 //Save podcast list action
 void podWindow_save_action(lv_event_t * event) {
   if (podcastsModified) {
-    writePodcasts();
+    writePodcasts(PODLIST_PATH);
     podcastsModified = false;
     updatePodcastHeader();
   }
@@ -594,7 +594,7 @@ void readPodcasts() {
   if (readPodcastFile(PODLIST_PATH)) serial.println("OK."); 
   else if (readPodcastFile(PODLIST_COPY)) {
     serial.println("OK.\n> Podcasts transferred from SD.");
-    writePodcasts();
+    writePodcasts(PODLIST_PATH);
   }
   else serial.println("Podcast list empty.");
   hideWebControls();
@@ -652,13 +652,13 @@ bool readPodcastFile(const char* filename) {
 //Write the current podlist to the podlist file
 // format is one entry per line:
 // #[podcast id],[podcast name]\[podcast description]
-void writePodcasts() {
+void writePodcasts(const char* path) {
   lv_fs_file_t f;
   char str[516];
   uint32_t byteswrote;
   //Build podlist
   removePodcasts();
-  if (fs_err(lv_fs_open(&f, PODLIST_PATH, LV_FS_MODE_WR), "Open Podcast list")) return;
+  if (fs_err(lv_fs_open(&f, path, LV_FS_MODE_WR), "Open Podcast list")) return;
   for (uint16_t i = 0; i < lv_obj_get_child_cnt(podMainList); i++) {   //every even entry is a button
     lv_obj_t* child = lv_obj_get_child(podMainList, i);
     podInfo* info = (podInfo*)lv_obj_get_user_data(child);
@@ -688,10 +688,18 @@ void removePodcasts() {
 
 //Look for the podcast list file on SD and transfer
 // Factory restore function
-bool transferPodcasts() {
-  if (readPodcastFile(PODLIST_COPY)) {
-    writePodcasts();
-    return true;
+// tofrom: false = to SD, true = from SD
+bool transferPodcasts(bool tofrom) {
+  if (tofrom) {
+    if (readPodcastFile(PODLIST_COPY)) {
+      writePodcasts(PODLIST_PATH);
+      return true;
+    }
+  } else {
+    if (readPodcastFile(PODLIST_PATH)) {
+      writePodcasts(PODLIST_COPY);
+      return true;
+    }
   }
   return false;
 }
