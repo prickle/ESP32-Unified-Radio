@@ -1523,6 +1523,7 @@ static void factoryTransferPodAction(lv_event_t * e) {
     else lv_label_set_text(transferPodcastsLbl, "Podcast file not found! " LV_SYMBOL_WARNING);
   }
   lv_obj_align_to(transferPodcastsLbl, transferPodcastsBtn, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
+  lv_msgbox_close(obj);
 }
 void factoryTransferPodcasts(lv_event_t * event) {
   static const char * btns[] = {"To SD", "From SD", ""};
@@ -1548,6 +1549,7 @@ static void factoryTransferStationAction(lv_event_t * e) {
     else lv_label_set_text(transferStationsLbl, "Station file not found! " LV_SYMBOL_WARNING);
   }
   lv_obj_align_to(transferStationsLbl, transferStationsBtn, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
+  lv_msgbox_close(obj);
 }
 void factoryTransferStations(lv_event_t * event) {
   static const char * btns[] = {"To SD", "From SD", ""};

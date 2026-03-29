@@ -115,7 +115,7 @@ char podcast_key[128] = {0};
 char podcast_secret[128] = {0};
 
 void readKeys() {
-  serial.print("> Reading key file..");
+  serial.print("> Reading key file: ");
   if (readKeyFile(KEY_PATH)) serial.println("OK.");
   else {
     serial.println("Failed!");

@@ -58,7 +58,7 @@ lv_obj_t * lv_msgbox_create(lv_obj_t * parent, const char * title, const char * 
 
     if(auto_parent) lv_obj_add_flag(mbox, LV_MSGBOX_FLAG_AUTO_PARENT);
 
-    lv_obj_set_size(mbox, LV_DPI_DEF * 2, LV_SIZE_CONTENT);
+    lv_obj_set_size(mbox, LV_DPI_DEF * 5, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(mbox, LV_FLEX_FLOW_ROW_WRAP);
     lv_obj_set_flex_align(mbox, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
 
@@ -98,7 +98,7 @@ lv_obj_t * lv_msgbox_create(lv_obj_t * parent, const char * title, const char * 
 
         const lv_font_t * font = lv_obj_get_style_text_font(btns, LV_PART_ITEMS);
         lv_coord_t btn_h = lv_font_get_line_height(font) + LV_DPI_DEF / 10;
-        lv_obj_set_size(btns, btn_cnt * (2 * LV_DPI_DEF / 3), btn_h);
+        lv_obj_set_size(btns, btn_cnt * (2 * LV_DPI_DEF), btn_h);
         lv_obj_add_flag(btns, LV_OBJ_FLAG_EVENT_BUBBLE);    /*To see the event directly on the message box*/
     }
 
