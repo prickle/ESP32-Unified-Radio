@@ -54,6 +54,7 @@ void setup(void)
 
   //Start internal filesystem
   initSPIFFS();
+  readKeys();
 
 #ifdef SDPLAYER
   //Find and start SD card

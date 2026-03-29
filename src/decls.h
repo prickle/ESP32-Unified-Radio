@@ -696,6 +696,12 @@ void createSettingsWindow(lv_obj_t * page);
 void initSettings();
 void setDefaults();
 void writeSettings();
+void readKeys();
+bool readKeyFile(const char* filename);
+#ifdef WEATHER_LOCATION
+void removeKeyfile();
+void writeKeyFile(const char* path);
+#endif
 void setSettingsVisibility();
 void passwordHandle();
 void setPasswordVisibility(bool visible, bool timed);

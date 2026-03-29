@@ -8,8 +8,6 @@ OW_forecast *forecast;
 
 //Weather API
 const char* weatherHost = WEATHER_HOST;
-String owmLocation = WEATHER_LOCATION;
-String owmKey = WEATHER_OWMKEY;
 
 const unsigned long  weatherPostingInterval = 30L*60L*1000L; // Delay between updates, in milliseconds, WU allows 500 requests per-day maximum, this sets it to every 30-mins or 48/day
 
@@ -652,6 +650,8 @@ bool weatherClientHandle() {
 //Connect to server and send request
 bool weatherRequest() {
   const int httpPort = 80;
+  String owmLocation = weather_location;
+  String owmKey = weather_owmkey;
   weatherClient.stop();  // Clear any current connections
   if (!weatherClient.connect(weatherHost, httpPort)) return false;
   //OpenWeatherMaps API

@@ -1125,9 +1125,9 @@ String sha1(String input) {
 bool podServerRequest(String url) {
   struct podcastMessage podcastTxTaskMessage;
   //serial.println(url);
-  String apiKey = String(PODCAST_KEY);
+  String apiKey = String(podcast_key);
   String apiHeaderTime = String(utf(), DEC);
-  String hash = sha1(apiKey + PODCAST_SECRET + apiHeaderTime);
+  String hash = sha1(apiKey + String(podcast_secret) + apiHeaderTime);
   if (!podClient.begin(url)) return false;
   podClient.setReuse(false);
   podClient.setUserAgent("SuperWooferPodPlayer/0.1");

@@ -88,12 +88,17 @@ extern uint8_t mainWindowIndex;
 //API key
 #define PODCAST_KEY        "TBM6PUVWQX3BYGSFSG3T"
 #define PODCAST_SECRET     "kskKLdVsQ^ZBEbnkaZKvPJV$89H#zrwb6dBMMFS2"
+extern char podcast_key[128];
+extern char podcast_secret[128];
 
 //Open Weather Map - api.openweathermap.org
-#define WEATHER_HOST       "api.openweathermap.org";
-#define WEATHER_LOCATION   "Melbourne,au";
-#define WEATHER_OWMKEY     "b69d7e9800e16452f3ad5e92e64dff08";
+#define WEATHER_HOST       "api.openweathermap.org"
+#define WEATHER_LOCATION   "Melbourne,au"
+#define WEATHER_OWMKEY     "b69d7e9800e16452f3ad5e92e64dff08"
 #define WEATHER_TIMEOUT    20000
+extern char weather_location[128];
+extern char weather_owmkey[128];
+
 
 //Battery monitoring
 extern float battV;
@@ -195,6 +200,7 @@ extern lv_obj_t * mainContainer;
 #define PLAYLIST_FILE      "/PlayList.m3u"
 #define DLNALIST_FILE      "/DlnaList.m3u"
 #define PODLIST_FILE       "/PodList.pod"
+#define KEY_FILE           "/keys.db"
 #define MUSIC_DIR          "/Music"
 
 //Storage paths
@@ -207,6 +213,7 @@ extern lv_obj_t * mainContainer;
 #define SDPLAYLIST_PATH    STORAGE_DRV_LETTER PLAYLIST_FILE
 #define FTPPLAYLIST_PATH   SYSTEM_DRV_LETTER PLAYLIST_FILE
 #define DLNAPLAYLIST_PATH  SYSTEM_DRV_LETTER DLNALIST_FILE
+#define KEY_PATH           SYSTEM_DRV_LETTER KEY_FILE
 #define FTPTEST_PATH       "E:/"
 
 

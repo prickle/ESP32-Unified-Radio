@@ -106,6 +106,92 @@ void initSettings() {
   //writeSettings();
 }
 
+//-------------------------------------------------
+// API key storage
+//Read the podcast list file into the podcast list
+char weather_location[128] = {0};
+char weather_owmkey[128] = {0};
+char podcast_key[128] = {0};
+char podcast_secret[128] = {0};
+
+void readKeys() {
+  serial.print("> Reading key file..");
+  if (readKeyFile(KEY_PATH)) serial.println("OK.");
+  else {
+    serial.println("Failed!");
+#ifdef WEATHER_LOCATION
+    writeKeyFile(KEY_PATH);
+    strcpy(weather_location, WEATHER_LOCATION);
+    strcpy(weather_owmkey, WEATHER_OWMKEY);
+    strcpy(podcast_key, PODCAST_KEY);
+    strcpy(podcast_secret, PODCAST_SECRET);
+#endif
+  }    
+  serial.println(weather_location);
+  serial.println(weather_owmkey);
+  serial.println(podcast_key);
+  serial.println(podcast_secret);
+}
+
+bool readKeyFile(const char* filename) {
+  lv_fs_file_t f;
+  if (lv_fs_open(&f, filename, LV_FS_MODE_RD) != LV_FS_RES_OK) return false;
+  int lbi = 0;
+  char linebuf[516];
+  uint32_t read_num;
+  char ch;
+  while (1) {
+    if (fs_err(lv_fs_read(&f, &ch, 1, &read_num), "Read key file")) return false;
+    if (read_num == 0) break;
+    if (ch != '\r' && ch != '\n' ) linebuf[lbi++] = ch;
+    if (ch == '\n' || lbi == 511) {
+      linebuf[lbi] = 0;
+      char * key = strchr(linebuf, ' ');
+      if (key) {
+        *key++ = '\0';
+        if (strcmp(linebuf, "WEATHER_LOCATION") == 0) strcpy(weather_location, key);
+        else if (strcmp(linebuf, "WEATHER_OWMKEY") == 0) strcpy(weather_owmkey, key);
+        else if (strcmp(linebuf, "PODCAST_KEY") == 0) strcpy(podcast_key, key);
+        else if (strcmp(linebuf, "PODCAST_SECRET") == 0) strcpy(podcast_secret, key);
+      }
+      lbi = 0;
+    }
+  }
+  lv_fs_close(&f);
+  return true;
+}
+
+#ifdef WEATHER_LOCATION
+
+//Remove keyfile
+void removeKeyfile() {
+  const char* path = KEY_PATH;
+  if (path[0] == 'D') { //SPIFFS
+    if (SPIFFS.exists(&path[2])) {
+      serial.println("> Removing old key file.");
+      SPIFFS.remove(&path[2]);  
+    }
+  }
+}
+
+void writeKeyFile(const char* path) {
+  lv_fs_file_t f;
+  char str[516];
+  uint32_t byteswrote;
+  removeKeyfile();
+  if (fs_err(lv_fs_open(&f, path, LV_FS_MODE_WR), "Open Key File")) return;
+  snprintf(str, 515, "WEATHER_LOCATION " WEATHER_LOCATION "\r\n");
+  if (fs_err(lv_fs_write(&f, str, strlen(str), &byteswrote), "Write Key Entry")) return;
+  snprintf(str, 515, "WEATHER_OWMKEY " WEATHER_OWMKEY "\r\n");
+  if (fs_err(lv_fs_write(&f, str, strlen(str), &byteswrote), "Write Key Entry")) return;
+  snprintf(str, 515, "PODCAST_KEY " PODCAST_KEY "\r\n");
+  if (fs_err(lv_fs_write(&f, str, strlen(str), &byteswrote), "Write Key Entry")) return;
+  snprintf(str, 515, "PODCAST_SECRET " PODCAST_SECRET "\r\n");
+  if (fs_err(lv_fs_write(&f, str, strlen(str), &byteswrote), "Write Key Entry")) return;
+  lv_fs_close(&f);
+}
+
+#endif
 //------------------------------------------------------------------
 //lvgl widgets
 
