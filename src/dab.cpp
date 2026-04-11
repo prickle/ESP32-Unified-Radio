@@ -470,8 +470,8 @@ void dabTimeCallback() {
   //Set RTC if not set
   if (!RTCSet && dab.GetRTC(&sec, &min, &hour, &day, &month, &year)) {
     serial.print("> Got time from DAB: ");
-    rtc.setTime(sec, min, hour, day, month, year + 2000);
-    serial.println(rtc.getTime("%A, %B %d %Y %H:%M:%S"));
+    setTime(sec, min, hour, day, month, year + 2000, false);
+    serial.println(getTime("%A, %B %d %Y %H:%M:%S"));
     RTCSet = true;
   }
 }

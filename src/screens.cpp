@@ -1704,7 +1704,7 @@ void createSysmonWindow(lv_obj_t *scr) {
 #ifdef BATTERYMON
   lv_obj_align_to(perf_chart, batt_label, LV_ALIGN_OUT_BOTTOM_LEFT, -4, 40);
 #else
-  lv_obj_set_pos(perf_chart, 10, 10);
+  lv_obj_set_pos(perf_chart, 10, 0);
 #endif
   //lv_obj_set_click(chart, false);
   lv_chart_set_point_count(perf_chart, PERF_CHART_POINT_NUM);

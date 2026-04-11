@@ -93,7 +93,8 @@ typedef struct canvasImg {
 lv_obj_t* createWindSpd(lv_obj_t* parent, int w, int h, uint16_t backCol) {
   canvasImg* canvas = new canvasImg;
   lv_obj_t *img = lv_img_create(parent);
-  canvas->img = new GFXcanvas16(w, h);
+  uint16_t *buffer = (uint16_t*)ps_malloc(w * h * 2);
+  canvas->img = new GFXcanvas16(w, h, buffer);
   canvas->img->fillRect(0, 0, w, h, (canvas->backCol = backCol));
   fillImageDescription(&(canvas->img_dsc), canvas->img);
   lv_obj_set_user_data(img, canvas);
@@ -131,7 +132,8 @@ void drawWindSpd(lv_obj_t* obj, float speed, float gust) {
 lv_obj_t* createWindDir(lv_obj_t* parent, int w, int h, uint16_t backCol) {
   canvasImg* canvas = new canvasImg;
   lv_obj_t *img = lv_img_create(parent);
-  canvas->img = new GFXcanvas16(w, h);
+  uint16_t *buffer = (uint16_t*)ps_malloc(w * h * 2);
+  canvas->img = new GFXcanvas16(w, h, buffer);
   canvas->img->fillRect(0, 0, w, h, (canvas->backCol = backCol));
   fillImageDescription(&(canvas->img_dsc), canvas->img);
   lv_obj_set_user_data(img, canvas);
@@ -192,7 +194,8 @@ void drawWindDir(lv_obj_t* obj, int angle, float speed, float gust) {
 lv_obj_t* createMoon(lv_obj_t* parent, int w, int h, uint16_t backCol) {
   canvasImg* canvas = new canvasImg;
   lv_obj_t *img = lv_img_create(parent);
-  canvas->img = new GFXcanvas16(w, h);
+  uint16_t *buffer = (uint16_t*)ps_malloc(w * h * 2);
+  canvas->img = new GFXcanvas16(w, h, buffer);
   canvas->img->fillRect(0, 0, w, h, (canvas->backCol = backCol));
   fillImageDescription(&(canvas->img_dsc), canvas->img);
   lv_obj_set_user_data(img, canvas);
@@ -241,7 +244,8 @@ float fft_peak_y[64] = { 0 };
 lv_obj_t* createFFT(lv_obj_t* parent, int w, int h, uint16_t backCol) {
   fftImg* fft = new fftImg;
   lv_obj_t *img = lv_img_create(parent);
-  fft->img = new GFXcanvas16(w, h);
+  uint16_t *buffer = (uint16_t*)ps_malloc(w * h * 2);
+  fft->img = new GFXcanvas16(w, h, buffer);
   fft->img->fillRect(0, 0, w, h, (fft->backCol = backCol));
   fft->barWidth = w / FFT_BARS;
   fft->numBars = w / fft->barWidth;

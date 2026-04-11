@@ -74,7 +74,8 @@ void setDefaults() {
     0,          //agcLW
     0,          //agcSW
     TZ,         //timezone
-    false       //Stereo Wide
+    false,      //Stereo Wide
+    true        //Weather client enabled
   }; 
   memcpy(settings, &defaults, sizeof(settingsObject));
 }
@@ -116,11 +117,15 @@ char podcast_secret[128] = {0};
 
 void readKeys() {
   serial.print("> Reading key file: ");
-  if (readKeyFile(KEY_PATH)) serial.println("OK.");
+  if (readKeyFile(KEY_PATH)) {
+    updateWeatherSettings();
+    updatePodcastSettings();
+    serial.println("OK.");
+  }
   else {
     serial.println("Failed!");
 #ifdef WEATHER_LOCATION
-    writeKeyFile(KEY_PATH);
+    writeStaticKeys(KEY_PATH);
     strcpy(weather_location, WEATHER_LOCATION);
     strcpy(weather_owmkey, WEATHER_OWMKEY);
     strcpy(podcast_key, PODCAST_KEY);
@@ -157,8 +162,6 @@ bool readKeyFile(const char* filename) {
   return true;
 }
 
-#ifdef WEATHER_LOCATION
-
 //Remove keyfile
 void removeKeyfile() {
   const char* path = KEY_PATH;
@@ -176,6 +179,25 @@ void writeKeyFile(const char* path) {
   uint32_t byteswrote;
   removeKeyfile();
   if (fs_err(lv_fs_open(&f, path, LV_FS_MODE_WR), "Open Key File")) return;
+  snprintf(str, 515, "WEATHER_LOCATION %s\r\n", weather_location);
+  if (fs_err(lv_fs_write(&f, str, strlen(str), &byteswrote), "Write Key Entry")) return;
+  snprintf(str, 515, "WEATHER_OWMKEY %s\r\n", weather_owmkey);
+  if (fs_err(lv_fs_write(&f, str, strlen(str), &byteswrote), "Write Key Entry")) return;
+  snprintf(str, 515, "PODCAST_KEY %s\r\n", podcast_key);
+  if (fs_err(lv_fs_write(&f, str, strlen(str), &byteswrote), "Write Key Entry")) return;
+  snprintf(str, 515, "PODCAST_SECRET %s\r\n", podcast_secret);
+  if (fs_err(lv_fs_write(&f, str, strlen(str), &byteswrote), "Write Key Entry")) return;
+  lv_fs_close(&f);
+}
+
+#ifdef WEATHER_LOCATION
+
+void writeStaticKeys(const char* path) {
+  lv_fs_file_t f;
+  char str[516];
+  uint32_t byteswrote;
+  removeKeyfile();
+  if (fs_err(lv_fs_open(&f, path, LV_FS_MODE_WR), "Open Key File")) return;
   snprintf(str, 515, "WEATHER_LOCATION " WEATHER_LOCATION "\r\n");
   if (fs_err(lv_fs_write(&f, str, strlen(str), &byteswrote), "Write Key Entry")) return;
   snprintf(str, 515, "WEATHER_OWMKEY " WEATHER_OWMKEY "\r\n");
@@ -186,6 +208,7 @@ void writeKeyFile(const char* path) {
   if (fs_err(lv_fs_write(&f, str, strlen(str), &byteswrote), "Write Key Entry")) return;
   lv_fs_close(&f);
 }
+
 
 #endif
 //------------------------------------------------------------------
@@ -217,6 +240,15 @@ void monoAction(lv_event_t * event);
 void webToneAction(lv_event_t * event);
 void tzEditAction(lv_event_t * event);
 void keyboardTzKeyAction(lv_event_t * event);
+void weatherAction(lv_event_t * event);
+void wlEditAction(lv_event_t * event);
+void keyboardWlKeyAction(lv_event_t * event);
+void wkEditAction(lv_event_t * event);
+void keyboardWkKeyAction(lv_event_t * event);
+void pkEditAction(lv_event_t * event);
+void keyboardPkKeyAction(lv_event_t * event);
+void psEditAction(lv_event_t * event);
+void keyboardPsKeyAction(lv_event_t * event);
 
 // *******************************************************************
 //Settings window
@@ -226,6 +258,8 @@ static lv_obj_t * wifiContainer;
 static lv_obj_t * ftpContainer;
 static lv_obj_t * dabContainer;
 static lv_obj_t * timeContainer;
+static lv_obj_t * weatherContainer;
+static lv_obj_t * podcastContainer;
 static lv_obj_t * wifiNetworkList;
 static lv_obj_t * wifiStatusLbl = NULL;
 static lv_obj_t * wifiDisconnectBtn = NULL;
@@ -238,6 +272,17 @@ static lv_obj_t * dstLabel;
 static lv_obj_t * dstSwitch;
 static lv_obj_t * tzLabel;
 static lv_obj_t * tzEditText;
+static lv_obj_t * weatherLabel;
+static lv_obj_t * weatherSwitch;
+static lv_obj_t * wlLabel;
+static lv_obj_t * wlEditText;
+static lv_obj_t * wkLabel;
+static lv_obj_t * wkEditText;
+static lv_obj_t * podcastLabel;
+static lv_obj_t * pkLabel;
+static lv_obj_t * pkEditText;
+static lv_obj_t * psLabel;
+static lv_obj_t * psEditText;
 static lv_obj_t * ftpServerText;
 static lv_obj_t * ftpUserText;
 static lv_obj_t * ftpPassText;
@@ -650,12 +695,89 @@ void createSettingsWindow(lv_obj_t * page) {
 
     
     tzEditText = lv_textarea_create(timeContainer);
-    lv_obj_set_size(tzEditText, width - 130, 20);
+    lv_obj_set_size(tzEditText, width - 122, 20);
     lv_obj_align_to(tzEditText, tzLabel, LV_ALIGN_OUT_RIGHT_MID, 20, 0);         //Align next to the slider
     lv_obj_add_style(tzEditText, &style_ta, LV_PART_MAIN);
     lv_obj_add_event_cb(tzEditText, tzEditAction, LV_EVENT_PRESSED, NULL);
     lv_textarea_set_one_line(tzEditText, true);
     lv_textarea_set_text(tzEditText, settings->tz);
+    
+    //Weather settings
+    weatherContainer = lv_obj_create(page);
+    lv_obj_set_size(weatherContainer, width, 110);
+    lv_obj_align_to(weatherContainer, timeContainer, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);         //Align next to the slider
+    lv_obj_add_style(weatherContainer, &style_groupbox, LV_PART_MAIN);
+    lv_obj_clear_flag(weatherContainer, LV_OBJ_FLAG_SCROLLABLE);
+
+    weatherLabel = lv_label_create(weatherContainer);
+    lv_obj_set_pos(weatherLabel, 10, 10);                //Align below the first button
+    lv_label_set_text(weatherLabel, "Weather Client Enable");
+
+    weatherSwitch = lv_switch_create(weatherContainer);
+    lv_obj_set_size(weatherSwitch, 44, 20);
+    if (settings->weather) lv_obj_add_state(weatherSwitch, LV_STATE_CHECKED);
+    else lv_obj_clear_state(weatherSwitch, LV_STATE_CHECKED);
+    lv_obj_align_to(weatherSwitch, weatherLabel, LV_ALIGN_OUT_RIGHT_MID, 20, 0);         //Align next to the slider
+    lv_obj_add_event_cb(weatherSwitch, weatherAction, LV_EVENT_VALUE_CHANGED, NULL); 
+ 
+    wlLabel = lv_label_create(weatherContainer);
+    lv_obj_align_to(wlLabel, weatherLabel, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 12);         //Align next to the slider
+    lv_label_set_text(wlLabel, "Location");
+
+    wlEditText = lv_textarea_create(weatherContainer);
+    lv_obj_set_size(wlEditText, width - 108, 20);
+    lv_obj_align_to(wlEditText, wlLabel, LV_ALIGN_OUT_RIGHT_MID, 20, 0);         //Align next to the slider
+    lv_obj_add_style(wlEditText, &style_ta, LV_PART_MAIN);
+    lv_obj_add_event_cb(wlEditText, wlEditAction, LV_EVENT_PRESSED, NULL);
+    lv_textarea_set_one_line(wlEditText, true);
+    lv_textarea_set_text(wlEditText, weather_location);
+
+    wkLabel = lv_label_create(weatherContainer);
+    lv_obj_align_to(wkLabel, wlLabel, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 16);         //Align next to the slider
+    lv_label_set_text(wkLabel, "API Key");
+
+    wkEditText = lv_textarea_create(weatherContainer);
+    lv_obj_set_size(wkEditText, width - 100, 20);
+    lv_obj_align_to(wkEditText, wkLabel, LV_ALIGN_OUT_RIGHT_MID, 20, 0);         //Align next to the slider
+    lv_obj_add_style(wkEditText, &style_ta, LV_PART_MAIN);
+    lv_obj_add_event_cb(wkEditText, wkEditAction, LV_EVENT_PRESSED, NULL);
+    lv_textarea_set_one_line(wkEditText, true);
+    lv_textarea_set_text(wkEditText, weather_owmkey);
+    
+    //Podcast settings
+    podcastContainer = lv_obj_create(page);
+    lv_obj_set_size(podcastContainer, width, 110);
+    lv_obj_align_to(podcastContainer, weatherContainer, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);         //Align next to the slider
+    lv_obj_add_style(podcastContainer, &style_groupbox, LV_PART_MAIN);
+    lv_obj_clear_flag(podcastContainer, LV_OBJ_FLAG_SCROLLABLE);
+
+    podcastLabel = lv_label_create(podcastContainer);
+    lv_obj_set_pos(podcastLabel, 10, 10);                //Align below the first button
+    lv_label_set_text(podcastLabel, "Podcast Search API (podcastindex.org)");
+
+    pkLabel = lv_label_create(podcastContainer);
+    lv_obj_align_to(pkLabel, podcastLabel, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 12);         //Align next to the slider
+    lv_label_set_text(pkLabel, "API Key");
+
+    pkEditText = lv_textarea_create(podcastContainer);
+    lv_obj_set_size(pkEditText, width - 100, 20);
+    lv_obj_align_to(pkEditText, pkLabel, LV_ALIGN_OUT_RIGHT_MID, 20, 0);         //Align next to the slider
+    lv_obj_add_style(pkEditText, &style_ta, LV_PART_MAIN);
+    lv_obj_add_event_cb(pkEditText, pkEditAction, LV_EVENT_PRESSED, NULL);
+    lv_textarea_set_one_line(pkEditText, true);
+    lv_textarea_set_text(pkEditText, podcast_key);
+
+    psLabel = lv_label_create(podcastContainer);
+    lv_obj_align_to(psLabel, pkLabel, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 16);         //Align next to the slider
+    lv_label_set_text(psLabel, "Secret");
+
+    psEditText = lv_textarea_create(podcastContainer);
+    lv_obj_set_size(psEditText, width - 92, 20);
+    lv_obj_align_to(psEditText, psLabel, LV_ALIGN_OUT_RIGHT_MID, 20, 0);         //Align next to the slider
+    lv_obj_add_style(psEditText, &style_ta, LV_PART_MAIN);
+    lv_obj_add_event_cb(psEditText, psEditAction, LV_EVENT_PRESSED, NULL);
+    lv_textarea_set_one_line(psEditText, true);
+    lv_textarea_set_text(psEditText, podcast_secret);
     
 }
 
@@ -679,6 +801,9 @@ void setSettingsVisibility() {
   lv_obj_align_to(ftpContainer, above, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);         //Align next to the slider
   above = showFtp?ftpContainer:above;
   lv_obj_align_to(timeContainer, above, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);
+  lv_obj_align_to(weatherContainer, timeContainer, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);         //Align next to the slider
+  lv_obj_align_to(podcastContainer, weatherContainer, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);         //Align next to the slider
+
 }
 
 //-----------------------------------------------------------------------
@@ -842,12 +967,9 @@ void wifiSelectedAction(lv_event_t * event) {
   if (!known) {
     for(int net = 0; net < 4; net++) {
       if (strcasecmp(settings->networks[net].ssid, "<Empty>") == 0) {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstringop-truncation"
-        strncpy(settings->networks[net].ssid, name, 27);
-#pragma GCC diagnostic pop
+        strncpy(settings->networks[net].ssid, name, 28);
         settings->networks[net].ssid[27] = '\0';
-        strcpy(settings->networks[settings->currentNetwork].password, "");
+        strcpy(settings->networks[net].password, "");
         settings->currentNetwork = net;
         writeSettings();
         wlanConnect();
@@ -862,17 +984,14 @@ void wifiSelectedAction(lv_event_t * event) {
   }
   if (!added) {
     if (++settings->currentNetwork >= 4) settings->currentNetwork = 0;
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstringop-truncation"
-    strncpy(settings->networks[settings->currentNetwork].ssid, name, 27);
-#pragma GCC diagnostic pop
+    strncpy(settings->networks[settings->currentNetwork].ssid, name, 28);
     settings->networks[settings->currentNetwork].ssid[27] = '\0';
     strcpy(settings->networks[settings->currentNetwork].password, "");
     writeSettings();
     wlanConnect();
     if (settings->mode == MODE_WEB) connectToHost(settings->server, true); 
-        serial.print("Networks Full:");
-        serial.println(settings->currentNetwork);
+    serial.print("Networks Full:");
+    serial.println(settings->currentNetwork);
   }
   if (passwordEditText) 
     lv_textarea_set_text(passwordEditText, settings->networks[settings->currentNetwork].password);
@@ -1057,6 +1176,110 @@ void keyboardTzKeyAction(lv_event_t * event) {
     }
     else if (res == LV_EVENT_CANCEL){
       lv_textarea_set_text(tzEditText, settings->tz);  
+    }
+  }
+}
+
+//-----------------------------------------------------------------------
+// Weather container actions
+
+void weatherAction(lv_event_t * event) {
+  weatherEnabled(lv_obj_has_state(weatherSwitch, LV_STATE_CHECKED));
+}
+
+void updateWeatherSettings() {
+  if (wlEditText) lv_textarea_set_text(wlEditText, weather_location);
+  if (wkEditText) lv_textarea_set_text(wkEditText, weather_owmkey);
+}
+
+void wlEditAction(lv_event_t * event) {
+  if (!keyboardShowing()) {
+    keyboardShow(lv_scr_act(), wlEditText, keyboardWlKeyAction);
+  }
+}
+
+void keyboardWlKeyAction(lv_event_t * event) {
+  uint32_t res = lv_event_get_code(event);
+  if(res == LV_EVENT_READY || res == LV_EVENT_CANCEL){
+    if (keyboardShowing()) keyboardHide(true, NULL);
+    if(res == LV_EVENT_READY) {
+      strncpy(weather_location, lv_textarea_get_text(wlEditText), 128); 
+      weather_location[127] = '\0';
+      writeKeyFile(KEY_PATH);
+    }
+    else if (res == LV_EVENT_CANCEL){
+      lv_textarea_set_text(wlEditText, weather_location);  
+    }
+  }
+}
+
+void wkEditAction(lv_event_t * event) {
+  if (!keyboardShowing()) {
+    keyboardShow(lv_scr_act(), wkEditText, keyboardWkKeyAction);
+  }
+}
+
+void keyboardWkKeyAction(lv_event_t * event) {
+  uint32_t res = lv_event_get_code(event);
+  if(res == LV_EVENT_READY || res == LV_EVENT_CANCEL){
+    if (keyboardShowing()) keyboardHide(true, NULL);
+    if(res == LV_EVENT_READY) {
+      strncpy(weather_owmkey, lv_textarea_get_text(wkEditText), 128); 
+      weather_owmkey[127] = '\0';
+      writeKeyFile(KEY_PATH);
+    }
+    else if (res == LV_EVENT_CANCEL){
+      lv_textarea_set_text(wkEditText, weather_owmkey);  
+    }
+  }
+}
+
+//-----------------------------------------------------------------------
+// Podcast container actions
+
+void updatePodcastSettings() {
+  if (pkEditText) lv_textarea_set_text(pkEditText, podcast_key);
+  if (psEditText) lv_textarea_set_text(psEditText, podcast_secret);
+}
+
+void pkEditAction(lv_event_t * event) {
+  if (!keyboardShowing()) {
+    keyboardShow(lv_scr_act(), pkEditText, keyboardPkKeyAction);
+  }
+}
+
+void keyboardPkKeyAction(lv_event_t * event) {
+  uint32_t res = lv_event_get_code(event);
+  if(res == LV_EVENT_READY || res == LV_EVENT_CANCEL){
+    if (keyboardShowing()) keyboardHide(true, NULL);
+    if(res == LV_EVENT_READY) {
+      strncpy(podcast_key, lv_textarea_get_text(pkEditText), 128); 
+      podcast_key[127] = '\0';
+      writeKeyFile(KEY_PATH);
+    }
+    else if (res == LV_EVENT_CANCEL){
+      lv_textarea_set_text(pkEditText, podcast_key);  
+    }
+  }
+}
+
+void psEditAction(lv_event_t * event) {
+  if (!keyboardShowing()) {
+    keyboardShow(lv_scr_act(), psEditText, keyboardPsKeyAction);
+  }
+}
+
+void keyboardPsKeyAction(lv_event_t * event) {
+  uint32_t res = lv_event_get_code(event);
+  if(res == LV_EVENT_READY || res == LV_EVENT_CANCEL){
+    if (keyboardShowing()) keyboardHide(true, NULL);
+    if(res == LV_EVENT_READY) {
+      strncpy(podcast_secret, lv_textarea_get_text(psEditText), 128); 
+      podcast_secret[127] = '\0';
+      writeKeyFile(KEY_PATH);
+    }
+    else if (res == LV_EVENT_CANCEL){
+      lv_textarea_set_text(psEditText, podcast_secret);  
     }
   }
 }

@@ -11,7 +11,9 @@
 #ifndef MINIRADIO
 #ifndef PANASONIC
 #ifndef PHILIPS
+#ifndef WAVESHARE28S3
 #error At least one device must be defined!
+#endif
 #endif
 #endif
 #endif
@@ -362,6 +364,35 @@
 
 #endif
 
+//================================
+//Super Woofer on WT32-SC01
+#ifdef WAVESHARE28S3
+// HOSTNAME for OTA update
+#define HOSTNAME  "ESP-WAVESHARE-"
+#define MDNS_NAME "waveshare"        //"woofer.local"
+#define RADIONAME "Waveshare ESP32S3 2.8"
+
+#define LVGL_BUFF_SIZE  48                   //even number please..
+#define NUM_PRESETS 12
+#define PRESET_HEIGHT 45
+//We have got an SD Card slot
+#define SDPLAYER
+//And a battery charger
+//#define BATTERYMON
+//Using this LCD
+#define TFT_WAVESHARE28  //320x240
+#define TFT_ROTATION 3
+#define TFT_WIDTH 320
+#define TFT_HEIGHT 240
+#define TOUCH_CST328
+#define CST328_PIN_RST  2
+#define CST328_PIN_INT  4
+#define CST328_PIN_SDA  1
+#define CST328_PIN_SCL  3
+//#define VUMETER
+//#define FFTMETER
+#endif
+
 
 
 //-----------------------------------------------------------------------
@@ -377,6 +408,9 @@
 #define USE_DMA
 #define LGFX_USE_V1         // set to use new version of library
 #include <LovyanGFX.hpp>    // main library
+#endif
+#ifdef TOUCH_CST328
+#include <CSE_CST328.h>
 #endif
 #include <lvgl.h>     // Modified
 #include <EEPROM.h>
@@ -698,9 +732,12 @@ void setDefaults();
 void writeSettings();
 void readKeys();
 bool readKeyFile(const char* filename);
-#ifdef WEATHER_LOCATION
 void removeKeyfile();
 void writeKeyFile(const char* path);
+void updateWeatherSettings();
+void updatePodcastSettings();
+#ifdef WEATHER_LOCATION
+void writeStaticKeys(const char* path);
 #endif
 void setSettingsVisibility();
 void passwordHandle();
@@ -738,6 +775,7 @@ void listMoveSelect(int offset);
 lv_obj_t * createWeatherWidget(lv_obj_t * parent);
 void weatherBegin();
 void setupWeather();
+void weatherEnabled(bool isEnabled);
 void weatherHandle();
 bool weatherClientHandle();
 void createWeather();

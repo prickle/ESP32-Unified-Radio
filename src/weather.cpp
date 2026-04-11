@@ -434,8 +434,18 @@ void weatherShrunkAction(lv_anim_t * a) {
 //Called from wifiHandle on first connect
 void weatherBegin() {
   //First fetch in 20 seconds from first connect
-  if (weatherGetQueue && !weatherConnectionTime) weatherConnectionTime = millis() + 20000;
+  if (settings->weather && weatherGetQueue && !weatherConnectionTime) weatherConnectionTime = millis() + 20000;
 }
+
+void weatherEnabled(bool isEnabled) {
+  if (settings->weather != isEnabled) {
+    if (isEnabled) weatherConnectionTime = millis();
+    else weatherConnectionTime = 0;
+    settings->weather = isEnabled;
+    writeSettings();
+  }
+}
+
 
 //Called from loop
 // Receive messages from weather client and dispatch actions from here

@@ -161,9 +161,9 @@ void savePreset(uint16_t index) {
     if (currentPodcast) strncpy(settings->presets[index].name, currentPodcast->name, 34);
   }
 #ifdef MONKEYBOARD  
-  else if (settings->mode == MODE_DAB) strncpy(settings->presets[index].name, settings->dabChannel, 34);
+  else if (settings->mode == MODE_DAB) strncpy(settings->presets[index].name, settings->dabChannel, 35);
   else if (settings->mode == MODE_FM) {
-    if (strlen(fmStationName)) snprintf(settings->presets[index].name, 34, "%s FM %.1f", fmStationName, dabFrequency / 1000.0);
+    if (strlen(fmStationName)) snprintf(settings->presets[index].name, 35, "%.25s FM %.1f", fmStationName, dabFrequency / 1000.0);
     else snprintf(settings->presets[index].name, 34, "FM %.1f", dabFrequency / 1000.0);
   }
 #endif

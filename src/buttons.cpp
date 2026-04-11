@@ -145,9 +145,11 @@ void encodersHandle() {
         if (settings->mode == MODE_DAB || settings->mode == MODE_WEB) {
           listDoSelect();
         }
+#ifdef NXP6686        
         if (settings->mode == MODE_NSW || settings->mode == MODE_NMW || settings->mode == MODE_NLW) {
           NXPFineTune();
         }
+#endif        
         if (settings->mode == MODE_POD) {
           podActivate();
         }

@@ -9,6 +9,10 @@ static LGFX tft;            // declare display variable
 #define LVGL_TICK_PERIOD 5
 Ticker tick; /* timer for interrupt handler */
 
+#ifdef TOUCH_CST328
+CSE_CST328 tsPanel = CSE_CST328 (240, 320, &Wire1, CST328_PIN_RST, CST328_PIN_INT);
+#endif
+
 //LVGL display object
 static lv_disp_t * display;
 static lv_disp_draw_buf_t disp_buf;
@@ -45,6 +49,10 @@ void initLVGL()  {
 #else
   lv_color_t * buf1 = (lv_color_t *)heap_caps_malloc(tft.width() * LVGL_BUFF_SIZE * sizeof(lv_color_t),MALLOC_CAP_DMA);
   lv_disp_draw_buf_init(&disp_buf, buf1, NULL, tft.width() * LVGL_BUFF_SIZE);
+#endif
+#ifdef TOUCH_CST328
+  Wire1.begin (CST328_PIN_SDA, CST328_PIN_SCL);
+  tsPanel.begin();
 #endif
 
   /*Initialize the display*/
@@ -223,6 +231,20 @@ void LVinputRead(lv_indev_drv_t * drv, lv_indev_data_t*data)
   lx = x;
   ly = y;
   touched = tz;
+}
+
+#elif defined(TOUCH_CST328)
+void LVinputRead(lv_indev_drv_t * drv, lv_indev_data_t*data) {
+  uint8_t point = 0;
+  touched = (tsPanel.isTouched(point) && point == 0);
+  if (touched) {
+    screenSaverInteraction();
+    data->state = LV_INDEV_STATE_PR;
+    data->point.x = tsPanel.getPoint(point).x;
+    data->point.y = tsPanel.getPoint(point).y;
+  } else {
+    data->state = LV_INDEV_STATE_REL;
+  }
 }
 
 #else

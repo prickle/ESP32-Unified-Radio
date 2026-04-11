@@ -86,15 +86,15 @@ extern uint8_t mainWindowIndex;
 #define PODCAST_LATESTRES  "&newest"
 #define PODCAST_LATEST     0
 //API key
-#define PODCAST_KEY        "TBM6PUVWQX3BYGSFSG3T"
-#define PODCAST_SECRET     "kskKLdVsQ^ZBEbnkaZKvPJV$89H#zrwb6dBMMFS2"
+//#define PODCAST_KEY        ""
+//#define PODCAST_SECRET     ""
 extern char podcast_key[128];
 extern char podcast_secret[128];
 
 //Open Weather Map - api.openweathermap.org
 #define WEATHER_HOST       "api.openweathermap.org"
-#define WEATHER_LOCATION   "Melbourne,au"
-#define WEATHER_OWMKEY     "b69d7e9800e16452f3ad5e92e64dff08"
+//#define WEATHER_LOCATION   "Melbourne,au"
+//#define WEATHER_OWMKEY     ""
 #define WEATHER_TIMEOUT    20000
 extern char weather_location[128];
 extern char weather_owmkey[128];
@@ -281,6 +281,12 @@ typedef struct OW_forecast {
 #define I2S_LRC       11
 #endif
 
+#ifdef WAVESHARE28S3
+#define I2S_DOUT      47
+#define I2S_BCLK      48
+#define I2S_LRC       38
+#endif
+
 //I2C Bus
 
 #ifdef BATTERYMON
@@ -373,6 +379,7 @@ struct __attribute__ ((packed)) settingsObject{
   uint8_t agcLW;
   char tz[64];
   bool wide;
+  bool weather;
 };
 //Pointer to settings object
 extern settingsObject* settings;
@@ -899,6 +906,54 @@ public:
 };
 #endif
 
+#ifdef TFT_WAVESHARE28
+class LGFX : public lgfx::LGFX_Device
+{
+  lgfx::Panel_ST7789  _panel_instance;
+  lgfx::Bus_SPI       _bus_instance;
+  lgfx::Light_PWM     _light_instance;
+
+public:
+  LGFX(void)
+  {
+    { // Display Bus Configuration
+      auto cfg = _bus_instance.config();
+      cfg.spi_mode = 0;
+      cfg.freq_write = 40000000; // 40MHz
+      cfg.freq_read  = 16000000;
+      cfg.pin_sclk = 40; // Adjust to your pins
+      cfg.pin_mosi = 45; // Adjust
+      cfg.pin_miso = -1; // Adjust
+      cfg.pin_dc   = 41;  // Adjust
+      _bus_instance.config(cfg);
+      _panel_instance.setBus(&_bus_instance);
+    }
+    { // バックライト制御の設定を行います。（必要なければ削除）
+      auto cfg = _light_instance.config();    // バックライト設定用の構造体を取得します。
+      cfg.pin_bl = 5;              // バックライトが接続されているピン番号
+      cfg.invert = false;           // バックライトの輝度を反転させる場合 true
+      cfg.freq   = 44100;           // バックライトのPWM周波数
+      cfg.pwm_channel = 7;          // 使用するPWMのチャンネル番号
+      _light_instance.config(cfg);
+      _panel_instance.setLight(&_light_instance);  // バックライトをパネルにセットします。
+    }
+    { // Display Panel Configuration
+      auto cfg = _panel_instance.config();
+      cfg.pin_cs           = 42; // Adjust
+      cfg.pin_rst          = 39;  // Adjust
+      cfg.pin_busy         = -1;
+      cfg.panel_width      = 240;
+      cfg.panel_height     = 320;
+      cfg.offset_x         = 0;
+      cfg.offset_y         = 0;
+      cfg.invert           = true; // Common for 320x240
+      cfg.rgb_order        = false; // Set true if colors are swapped (BGR)
+      _panel_instance.config(cfg);
+    }
+    setPanel(&_panel_instance);
+  }
+};
+#endif
 
 //Colour names
 #define LTBLUE    0xB6DF
