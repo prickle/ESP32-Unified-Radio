@@ -54,7 +54,7 @@ void createFileBrowserWindow(lv_obj_t * page) {
   browserMainList = lv_list_create(win_content);
   //lv_obj_add_style(browserMainList, &style_win, LV_PART_MAIN);
   lv_obj_set_style_bg_opa(browserMainList, LV_OPA_TRANSP, LV_PART_MAIN);
-  lv_obj_add_style(browserMainList, &style_biggestfont, LV_PART_MAIN);
+  lv_obj_add_style(browserMainList, &style_listfont, LV_PART_MAIN);
   lv_obj_update_layout(win_content);
   lv_obj_set_size(browserMainList, lv_obj_get_content_width(win_content), lv_obj_get_content_height(win_content));
   lv_obj_set_pos(browserMainList, 0, 0);

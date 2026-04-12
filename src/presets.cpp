@@ -53,7 +53,7 @@ void createPresetsWindow(lv_obj_t * parent) {
   for (int ind = 0; ind < NUM_PRESETS; ind++) {
     presetButtons[ind] = lv_btn_create(parent);
     lv_obj_set_size(presetButtons[ind], (lv_obj_get_content_width(parent) - 20) / 4, PRESET_HEIGHT);
-    if (ind == 0) lv_obj_align_to(presetButtons[ind], urlEditText, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 14);
+    if (ind == 0) lv_obj_align_to(presetButtons[ind], urlEditText, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 4);
     else if (ind == 4 || ind == 8 || ind == 12) 
       lv_obj_align_to(presetButtons[ind], presetButtons[ind-4], LV_ALIGN_OUT_BOTTOM_LEFT, 0, 5);
     else lv_obj_align_to(presetButtons[ind], presetButtons[ind-1], LV_ALIGN_OUT_RIGHT_MID, 5, 0);

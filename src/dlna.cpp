@@ -88,7 +88,7 @@ void createDlnaWindow(lv_obj_t * parent) {
 
   dlnaList = lv_list_create(win_content);
   lv_obj_set_style_bg_opa(dlnaList, LV_OPA_TRANSP, LV_PART_MAIN);
-  lv_obj_add_style(dlnaList, &style_biggestfont, LV_PART_MAIN);
+  lv_obj_add_style(dlnaList, &style_listfont, LV_PART_MAIN);
   lv_obj_update_layout(win_content);
   lv_obj_set_size(dlnaList, lv_obj_get_content_width(win_content), lv_obj_get_content_height(win_content));
   lv_obj_set_pos(dlnaList, 0, 0);

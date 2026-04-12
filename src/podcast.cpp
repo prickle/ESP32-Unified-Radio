@@ -105,14 +105,14 @@ void createPodcastWindow(lv_obj_t * parent) {
 
   podMainList = lv_list_create(win_content);
   lv_obj_set_style_bg_opa(podMainList, LV_OPA_TRANSP, LV_PART_MAIN);
-  lv_obj_add_style(podMainList, &style_biggestfont, LV_PART_MAIN);
+  lv_obj_add_style(podMainList, &style_listfont, LV_PART_MAIN);
   lv_obj_update_layout(win_content);
   lv_obj_set_size(podMainList, lv_obj_get_content_width(win_content), lv_obj_get_content_height(win_content));
   lv_obj_set_pos(podMainList, 0, 0);
 
   podEpisodeList = lv_list_create(win_content);
   lv_obj_set_style_bg_opa(podEpisodeList, LV_OPA_TRANSP, LV_PART_MAIN);
-  lv_obj_add_style(podEpisodeList, &style_biggestfont, LV_PART_MAIN);
+  lv_obj_add_style(podEpisodeList, &style_listfont, LV_PART_MAIN);
   lv_obj_update_layout(win_content);
   lv_obj_set_size(podEpisodeList, lv_obj_get_content_width(win_content), lv_obj_get_content_height(win_content));
   lv_obj_set_pos(podEpisodeList, 0, 0);
@@ -343,14 +343,14 @@ lv_obj_t * addPodcastButton(podInfo* info) {
       list_btn = lv_list_add_btn(podEpisodeList, LV_SYMBOL_AUDIO, strbuf);
     } else list_btn = lv_list_add_btn(podEpisodeList, LV_SYMBOL_AUDIO, info->name);
     lv_obj_t * list_txt = lv_list_add_text(podEpisodeList, info->description);
-    lv_obj_set_style_text_font(list_txt, &lv_font_montserrat_16, LV_PART_MAIN);
+    lv_obj_set_style_text_font(list_txt, &lv_font_mymontserrat_16, LV_PART_MAIN);
     lv_obj_set_style_pad_bottom(list_txt, 6, LV_PART_MAIN);
     lv_label_set_long_mode(list_txt, LV_LABEL_LONG_WRAP);
     lv_obj_add_event_cb(list_btn, podcastAction, LV_EVENT_CLICKED, NULL);
   } else { //Insertion sort - main list 
     list_btn = lv_list_add_btn(podMainList, LV_SYMBOL_BULLHORN, info->name);
     lv_obj_t * list_txt = lv_list_add_text(podMainList, "");
-    lv_obj_set_style_text_font(list_txt, &lv_font_montserrat_16, LV_PART_MAIN);
+    lv_obj_set_style_text_font(list_txt, &lv_font_mymontserrat_16, LV_PART_MAIN);
     lv_obj_set_style_pad_bottom(list_txt, 6, LV_PART_MAIN);
     lv_label_set_long_mode(list_txt, LV_LABEL_LONG_WRAP);
     lv_obj_set_hidden(list_txt, true);
@@ -791,7 +791,7 @@ void createPodSearchWindow(lv_obj_t * parent) {
   lv_obj_set_size(podSearchResultList, lv_obj_get_content_width(win_content) - 4, LV_SIZE_CONTENT);
   lv_obj_set_pos(podSearchResultList, 0, 48);
   lv_obj_add_style(podSearchResultList, &style_halfopa, LV_PART_MAIN);
-  lv_obj_add_style(podSearchResultList, &style_biggestfont, LV_PART_MAIN);
+  lv_obj_add_style(podSearchResultList, &style_listfont, LV_PART_MAIN);
   //lv_obj_clear_flag(podSearchResultList, LV_OBJ_FLAG_SCROLLABLE);
   lv_obj_set_size(podSearchResults, lv_obj_get_width(win_content), lv_obj_get_height(win_content));
 
@@ -810,7 +810,7 @@ void createPodSearchWindow(lv_obj_t * parent) {
   lv_obj_set_size(podSearchEpisodeList, lv_obj_get_content_width(win_content) - 4, LV_SIZE_CONTENT);
   lv_obj_set_pos(podSearchEpisodeList, 0, 0);
   lv_obj_add_style(podSearchEpisodeList, &style_halfopa, LV_PART_MAIN);
-  lv_obj_add_style(podSearchEpisodeList, &style_biggestfont, LV_PART_MAIN);
+  lv_obj_add_style(podSearchEpisodeList, &style_listfont, LV_PART_MAIN);
   lv_obj_set_size(podSearchEpisodeCont, lv_obj_get_width(win_content), lv_obj_get_height(win_content));
 
     //Loading spinner
@@ -959,7 +959,7 @@ lv_obj_t * addPodSearchResult(podInfo* info) {
       }
     }
   }
-  lv_obj_set_style_text_font(list_txt, &lv_font_montserrat_16, LV_PART_MAIN);
+  lv_obj_set_style_text_font(list_txt, &lv_font_mymontserrat_16, LV_PART_MAIN);
   lv_obj_set_style_pad_bottom(list_txt, 6, LV_PART_MAIN);
   lv_label_set_long_mode(list_txt, LV_LABEL_LONG_WRAP);
   lv_obj_add_event_cb(list_btn, podSearchAction, LV_EVENT_CLICKED, NULL);

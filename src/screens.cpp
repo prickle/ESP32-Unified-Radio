@@ -106,6 +106,7 @@ lv_style_t style_listsel;
 lv_style_t style_digitalfont;
 lv_style_t style_biggerfont;
 lv_style_t style_biggestfont;
+lv_style_t style_listfont;
 lv_style_t style_bigfont_orange;
 
 //The keyboard
@@ -186,12 +187,17 @@ void screenInit(void) {
   lv_style_set_text_font(&style_bigfont, &lv_font_montserrat_14);
 #endif
   lv_style_init(&style_biggerfont);
-  lv_style_set_text_font(&style_biggerfont, &lv_font_montserrat_16);
+  lv_style_set_text_font(&style_biggerfont, &lv_font_mymontserrat_16);
   lv_style_init(&style_biggestfont);
   lv_style_set_text_font(&style_biggestfont, &lv_font_mymontserrat_20);
   lv_style_init(&style_bigfont_orange);
   lv_style_set_text_font(&style_bigfont_orange, &lv_font_mymontserrat_20);
-#ifdef THEME_BLUE
+#if (TFT_HEIGHT == 240)
+  style_listfont = style_biggerfont; //Has the extra icons
+#else
+  style_listfont = style_biggestfont; //Has the extra icons
+#endif
+  #ifdef THEME_BLUE
   lv_style_set_text_color(&style_bigfont_orange, lv_palette_main(LV_PALETTE_LIGHT_BLUE));
 #elif defined(THEME_HIVIS)
   lv_style_set_text_color(&style_bigfont_orange, lv_color_hex(0x00ffff));
@@ -254,7 +260,7 @@ void screenInit(void) {
   lv_style_set_border_color(&style_ta, lv_color_hex(0xFF7F50));
 #endif
   lv_style_set_text_color(&style_ta, lv_color_white());
-  lv_style_set_text_font(&style_ta, &lv_font_montserrat_16);
+  lv_style_set_text_font(&style_ta, &lv_font_mymontserrat_16);
   lv_style_set_pad_top(&style_ta, 6);
   lv_style_set_pad_bottom(&style_ta, 8);
   lv_style_set_pad_left(&style_ta, 8);
@@ -840,9 +846,9 @@ lv_obj_t * createListMenu(lv_obj_t* button) {
   //Create the menu list
   lv_obj_t* menuObj = lv_list_create(list);
   lv_obj_add_flag(menuObj, LV_OBJ_FLAG_IGNORE_LAYOUT);
-  lv_obj_set_x(menuObj, lv_obj_get_x(button) + lv_obj_get_width(button) / 4);
+  lv_obj_set_x(menuObj, lv_obj_get_x(button) + lv_obj_get_width(button) * 0.1f);
   lv_obj_set_y(menuObj, lv_obj_get_y(button) + lv_obj_get_height(button) - 2);
-  lv_obj_set_width(menuObj, lv_obj_get_width(button) / 2);
+  lv_obj_set_width(menuObj, lv_obj_get_width(button) * 0.8f);
   lv_obj_set_height(menuObj, LV_SIZE_CONTENT);
   lv_obj_set_style_border_width(menuObj, 2, LV_PART_MAIN);
   lv_obj_set_style_border_color(menuObj, lv_color_hex(0xFF7F50), LV_PART_MAIN);

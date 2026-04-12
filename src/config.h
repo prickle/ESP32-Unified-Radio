@@ -171,6 +171,7 @@ extern lv_style_t style_digitalfont;
 extern lv_style_t style_bigfont;
 extern lv_style_t style_biggerfont;
 extern lv_style_t style_biggestfont;
+extern lv_style_t style_listfont;
 extern lv_style_t style_bigfont_orange;
 
 //Main info labels

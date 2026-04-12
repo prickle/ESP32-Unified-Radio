@@ -73,10 +73,28 @@ Features:
 
 Example hardware target:
 
-The "env:woofer" environment targets the WT32-SC01 Plus, an easily obtainable ESP32S3 module that works well.
+The "env:waveshare28s3" environment targets the Waveshare ESP32-S3-Touch-LCD-2.8, an ESP32S3 module with stereo speakers that works perfectly out of the box.
 
-The "env:panasonic" environment targets the WT32-SC01, the plain ESP32 version.
+The "env:woofer" environment targets the WT32-SC01 Plus, an easily obtainable ESP32S3 module that works well with an external DAC or with it's single speaker in mono.
+
+The "env:panasonic" environment targets the WT32-SC01, the plain ESP32 version using an external DAC.
 
 The other environments use custom built hardware, profiles can be found near the top of defs.h
 
-If you do use it, please credit me and get your own API keys. Cheers!
+API Keys:
+
+Copy the file data/keys.db.example to data/keys.db and fill in the fields. 
+
+Visit api.openweathermap.org and create an account to get an openweathermap API key.
+Set WEATHER_LOCATION to your openweathermap location.
+Set WEATHER_OWMKEY to your API key.
+
+Visit api.podcastindex.org and click Sign Up! to create an account and get a podcastindex API key.
+Set PODCAST_KEY to your API key.
+Set PODCAST_SECRET to your API secret.
+
+First Run:
+
+After first compiling and uploading the code, the device will pause during startup to format it's internal storage. This may take a few moments. When complete and the device is fully started up, upload the filesystem image with valid keys to complete the configuration. 
+
+If you do use it, please credit me. Cheers!

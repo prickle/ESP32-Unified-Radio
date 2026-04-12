@@ -307,8 +307,7 @@ void webradioHandle() {
           //"Stopped" message for file players
 #ifdef SDPLAYER
           if ((settings->mode != MODE_SD && settings->mode != MODE_FTP && settings->mode != MODE_DLNA) || !getPlaylistIndex()) {
-            if (settings->mode != MODE_SD && !SDFound) info(NAME, 0, LV_SYMBOL_SD_CARD" SD Card not found!");
-            else info(NAME, 0, LV_SYMBOL_STOP " Stopped");
+            info(NAME, 0, LV_SYMBOL_STOP " Stopped");
 #else
           if ((settings->mode != MODE_FTP && settings->mode != MODE_DLNA) || !getPlaylistIndex()) {
             info(NAME, 0, LV_SYMBOL_STOP " Stopped");
@@ -321,7 +320,10 @@ void webradioHandle() {
           }
           //Call the end of file functions here
 #ifdef SDPLAYER
-          if (settings->mode == MODE_SD || settings->mode == MODE_FTP || settings->mode == MODE_DLNA) sdSongFinished();
+          if (settings->mode == MODE_SD || settings->mode == MODE_FTP || settings->mode == MODE_DLNA) {
+            if (settings->mode == MODE_SD && !SDFound) info(NAME, 0, LV_SYMBOL_SD_CARD" SD Card not found!");
+            sdSongFinished();
+          }
 #else
           if (settings->mode == MODE_FTP || settings->mode == MODE_DLNA) sdSongFinished();
 #endif

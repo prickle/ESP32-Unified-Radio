@@ -179,7 +179,7 @@ void createSearchWindow(lv_obj_t * parent) {
   lv_obj_set_pos(searchResultList, 0, 0);
   lv_obj_align_to(searchResultList, termTypeList1, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);
   lv_obj_add_style(searchResultList, &style_halfopa, LV_PART_MAIN);
-  lv_obj_add_style(searchResultList, &style_biggestfont, LV_PART_MAIN);
+  lv_obj_add_style(searchResultList, &style_listfont, LV_PART_MAIN);
   lv_obj_clear_flag(searchResultList, LV_OBJ_FLAG_SCROLLABLE);
   //lv_obj_set_scrollbar_mode(dabStationList, LV_SCROLLBAR_MODE_OFF);
 

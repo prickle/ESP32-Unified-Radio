@@ -61,7 +61,7 @@ void createPlaylistWindow(lv_obj_t * parent) {
 
   playlistMainList = lv_list_create(win_content);
   lv_obj_add_style(playlistMainList, &style_halfopa, LV_PART_MAIN);
-  lv_obj_add_style(playlistMainList, &style_biggestfont, LV_PART_MAIN);
+  lv_obj_add_style(playlistMainList, &style_listfont, LV_PART_MAIN);
   lv_obj_update_layout(win_content);
   lv_obj_set_size(playlistMainList, lv_obj_get_content_width(win_content), lv_obj_get_content_height(win_content));
   lv_obj_set_pos(playlistMainList, 0, 0);

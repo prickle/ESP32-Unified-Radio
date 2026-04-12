@@ -65,7 +65,7 @@ void createStationsWindow(lv_obj_t * page) {
   lv_obj_set_size(dabStationList, lv_obj_get_content_width(page), lv_obj_get_content_height(page)-40);
   
   lv_obj_set_style_bg_opa(dabStationList, LV_OPA_TRANSP, LV_PART_MAIN);
-  lv_obj_add_style(dabStationList, &style_biggestfont, LV_PART_MAIN);
+  lv_obj_add_style(dabStationList, &style_listfont, LV_PART_MAIN);
 }
 
 void hideStationWindow(bool hide) {
