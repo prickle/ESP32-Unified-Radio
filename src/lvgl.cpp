@@ -240,8 +240,8 @@ void LVinputRead(lv_indev_drv_t * drv, lv_indev_data_t*data) {
   if (touched) {
     screenSaverInteraction();
     data->state = LV_INDEV_STATE_PR;
-    data->point.x = tsPanel.getPoint(point).x;
-    data->point.y = tsPanel.getPoint(point).y;
+    data->point.y = (TFT_HEIGHT - 1) - tsPanel.getPoint(point).x;
+    data->point.x = tsPanel.getPoint(point).y;
   } else {
     data->state = LV_INDEV_STATE_REL;
   }

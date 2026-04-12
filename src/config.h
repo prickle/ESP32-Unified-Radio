@@ -251,15 +251,6 @@ typedef struct OW_forecast {
 } OW_forecast;
 
 
-//Pin defines
-#ifdef SDPLAYER
-// These pins for SD Card
-#define SD_MISO      38
-#define SD_MOSI      40
-#define SD_SCK       39
-#define SD_CS        41    //15  // or 5
-#endif
-
 //I2S audio
  
 #ifdef SUPERWOOFER

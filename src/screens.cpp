@@ -1663,7 +1663,7 @@ void createSysmonWindow(lv_obj_t *scr) {
   //Create a battery chart with two data lines
   batt_chart = lv_chart_create(scr);
   lv_obj_set_size(batt_chart, hres - 20, vres / 2);
-  lv_obj_set_pos(batt_chart, 10, 10);
+  lv_obj_set_pos(batt_chart, 10, 0);
   //lv_obj_set_click(chart, false);
   lv_chart_set_point_count(batt_chart, BATT_CHART_POINT_NUM);
   lv_chart_set_range(batt_chart, LV_CHART_AXIS_PRIMARY_Y, 0, 100);
@@ -1700,7 +1700,6 @@ void createSysmonWindow(lv_obj_t *scr) {
   //Create a chart with two data lines
   perf_chart = lv_chart_create(scr);
   lv_obj_set_size(perf_chart, hres - 20, vres / 2);
-  //lv_obj_set_pos(perf_chart, 10, 10);
 #ifdef BATTERYMON
   lv_obj_align_to(perf_chart, batt_label, LV_ALIGN_OUT_BOTTOM_LEFT, -4, 40);
 #else

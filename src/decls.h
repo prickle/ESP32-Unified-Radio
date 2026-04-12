@@ -43,6 +43,10 @@
 #define PRESET_HEIGHT 45
 //We have got an SD Card slot
 #define SDPLAYER
+#define SD_MISO      38
+#define SD_MOSI      40
+#define SD_SCK       39
+#define SD_CS        41    //15  // or 5
 //And a battery charger
 #define BATTERYMON
 //Using this LCD
@@ -372,16 +376,23 @@
 #define MDNS_NAME "waveshare"        //"woofer.local"
 #define RADIONAME "Waveshare ESP32S3 2.8"
 
+//3-band EQ
+#define EQUALIZER
+
 #define LVGL_BUFF_SIZE  48                   //even number please..
 #define NUM_PRESETS 12
 #define PRESET_HEIGHT 45
 //We have got an SD Card slot
 #define SDPLAYER
+#define SD_MISO      16
+#define SD_MOSI      17
+#define SD_SCK       14
+#define SD_CS        21    //15  // or 5
 //And a battery charger
 //#define BATTERYMON
 //Using this LCD
 #define TFT_WAVESHARE28  //320x240
-#define TFT_ROTATION 3
+#define TFT_ROTATION 1
 #define TFT_WIDTH 320
 #define TFT_HEIGHT 240
 #define TOUCH_CST328
