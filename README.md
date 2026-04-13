@@ -2,7 +2,9 @@ ESP32 Unified Radio
 
 Full function webradio, podcast player, MP3 player, music streamer and broadcast radio receiver for ESP32 or ESP32S3
 
-PlatformIO Project
+This radio is deliberately designed to be like an old-fashioned, stand-alone, hands on appliance. No external control or setup is required, all functionality is available on the device itself.
+
+This is a PlatformIO Project using the ESP-IDF and Arduino.
 
 Note that the included libraries have been modified for this project. All code remains the property of the respective authors.
 
