@@ -263,13 +263,13 @@ void insertPlaylist(lv_event_t * event) {
   removePlaylist(path);
   if (fs_err(lv_fs_open(&f, path, LV_FS_MODE_WR), "Open Playlist")) return;
   for (int16_t i = 0; i < getPlaylistIndex(); i++) {
-    lv_obj_t* child = getPlaylistChild(i);
-    addPlaylistEntry(&f, (char*)lv_obj_get_user_data(child));            
+    lv_obj_t* entry = getPlaylistChild(i);
+    if (entry) addPlaylistEntry(&f, (char*)lv_obj_get_user_data(entry));            
   }
   buildPlaylist(&f, child);
   for (int16_t i = getPlaylistIndex(); i < getPlaylistCount(); i++) {
-    lv_obj_t* child = getPlaylistChild(i);
-    addPlaylistEntry(&f, (char*)lv_obj_get_user_data(child));            
+    lv_obj_t* entry = getPlaylistChild(i);
+    if (entry) addPlaylistEntry(&f, (char*)lv_obj_get_user_data(entry));            
   }
   lv_fs_close(&f);
   hideWebControls();
