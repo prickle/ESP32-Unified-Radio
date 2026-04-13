@@ -4,7 +4,7 @@ Full function webradio, podcast player, MP3 player, music streamer and broadcast
 
 PlatformIO Project
 
-Note that the included libraries have been modified for this project.
+Note that the included libraries have been modified for this project. All code remains the property of the respective authors.
 
 Features:
 
