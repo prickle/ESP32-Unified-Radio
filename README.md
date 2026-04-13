@@ -1,10 +1,12 @@
 ESP32 Unified Radio
 
-Full function webradio for ESP32 or ESP32S3
+Full function webradio, podcast player, MP3 player, music streamer and broadcast radio receiver for ESP32 or ESP32S3
 
-PlatformIO Project
+This radio is deliberately designed to be like an old-fashioned, stand-alone, hands on appliance. No external control or setup is required, all functionality is available on the device itself.
 
-Note that the included libraries have been modified for this project.
+This is a PlatformIO Project using the ESP-IDF and Arduino.
+
+Note that the included libraries have been modified for this project. All code remains the property of the respective authors.
 
 Features:
 
@@ -80,6 +82,10 @@ The "env:woofer" environment targets the WT32-SC01 Plus, an easily obtainable ES
 The "env:panasonic" environment targets the WT32-SC01, the plain ESP32 version using an external DAC.
 
 The other environments use custom built hardware, profiles can be found near the top of defs.h
+
+Installation:
+
+Install Visual Studio Code and install the PlatformIO extension from within Visual Studio. Download the ESP32 Unified Radio source code from here and open it from PlatformIO. It will configure itself and download any required libraries. Select an environment to suit your hardware, prepare your API keys and you are ready to compile and upload to the board.
 
 API Keys:
 
