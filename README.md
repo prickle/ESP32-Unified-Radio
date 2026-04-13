@@ -1,6 +1,6 @@
 ESP32 Unified Radio
 
-Full function webradio, podcasts player, MP3 player, music streamer and broadcast radio receiver ⁷for ESP32 or ESP32S3
+Full function webradio, podcast player, MP3 player, music streamer and broadcast radio receiver for ESP32 or ESP32S3
 
 PlatformIO Project
 
