@@ -1,6 +1,6 @@
 # ESP32 Unified Radio
 
-Full function webradio, podcast player, MP3 player, music streamer and broadcast radio receiver for ESP32 or ESP32S3
+Full function webradio, podcast player, MP3 player, music streamer, bluetooth speaker and broadcast radio receiver for ESP32 or ESP32S3
 
 This radio is intended to be like an old-fashioned, stand-alone, hands on appliance. No external control or setup is required after initial installation, all functionality is available on the device itself. This makes it ideal for retrofitting into old radio or portable stereo chassies, restoring them to use or giving them more life.
 
@@ -49,6 +49,12 @@ Note that the included libraries have been modified for this project. All code r
 - Full-screen station slideshow display (320x240)
 - Also receives FM with RDS Support
 - Requires access to Monkeyboard library, contact me
+
+**Bluetooth Speaker**
+- Only on ESP32 (not S3)
+- Bluetooth audio receiver
+- Remote volume control
+- Metadata support
 
 **Presets**
 - Programmable preset buttons
