@@ -252,7 +252,7 @@
 //Capture logging messages from ESP-IDF
 #define LOG_REDIRECT
 //Bluetooth (experimental)
-//#define BLUETOOTH
+#define BLUETOOTH
 
 //I2S audio
 #define I2S_DOUT      5
@@ -447,6 +447,16 @@
 #include <Audio.h> //see repository at github "https://github.com/schreibfaul1/ESP32-audioI2S"
 // 'AAC_ENABLE_SBR' can be deactivated in 'aac_decoder.h', saves ~ 60KB
 
+#ifdef BLUETOOTH
+// bluetooth, config, discover and audio
+#include "esp_bt.h"
+#include "esp_bt_main.h"
+#include "esp_bt_device.h"
+#include "esp_gap_bt_api.h"
+#include "esp_a2dp_api.h"
+#include "esp_avrc_api.h"
+#endif
+
 #include "config.h"  //Configuration, constants and headers
 #include "img.h"     //Image data
 
@@ -465,14 +475,27 @@ void artHandle();
 //audio.cpp
 void webradioSetup();
 void webradioHandle();  
+void webRadioDelete();
 void connectToHost(const char * server, bool metadata);
 void connectToFS(char * path, uint32_t resumePos);
 void setDspVolume(uint8_t volume);
+void notifyVolumeChange(uint8_t volume);
 void setVSTone ( uint16_t rtone );
 uint16_t formatVSTone(int8_t bass, int8_t mid, int8_t treb);
 void webradioStop();
 bool isWebradioAllocated();
 void setMonoOutput(bool mono);
+bool setSampleRate(uint32_t hz);
+bool setBitsPerSample(int bits);
+bool setChannels(int channels);
+bool playSample(int16_t sample[2]);
+#ifdef BLUETOOTH
+void startBluetooth();
+void stopBluetooth();
+void btNotify(uint32_t source, uint32_t val, const char* msg);
+void audio_showstation(const char *info);
+void audio_showstreamtitle(const char *info);
+#endif
 
 //batt.cpp
 #ifdef I2C_SDA
@@ -501,10 +524,11 @@ void browserListMenu(lv_event_t * event);
 
 #ifdef BLUETOOTH
 //bluetooth.cpp
-//void setupBluetooth();
+void bluetoothMessage(uint32_t source, uint32_t val, const char* txt);
 void startBT();
 void handleBT();
 void stopBT();
+void BTvolchange(uint32_t vol);
 #endif
 
 //buttons.cpp

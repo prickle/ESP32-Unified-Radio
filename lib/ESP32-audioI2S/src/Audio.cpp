@@ -4310,18 +4310,8 @@ void Audio::setI2SCommFMT_LSB(bool commFMT) {
     i2s_driver_uninstall((i2s_port_t)m_i2s_num);
     i2s_driver_install  ((i2s_port_t)m_i2s_num, &m_i2s_config, 0, NULL);
 }
-//---------------------------------------------------------------------------------------------------------------------
-bool Audio::playSample(int16_t sample[2]) {
-    float fsample[2];
 
-    if (getBitsPerSample() == 8) { // Upsample from unsigned 8 bits to signed 16 bits
-        sample[LEFTCHANNEL]  = ((sample[LEFTCHANNEL]  & 0xff) -128) << 8;
-        sample[RIGHTCHANNEL] = ((sample[RIGHTCHANNEL] & 0xff) -128) << 8;
-    }
-
-    fsample[LEFTCHANNEL]  = sample[LEFTCHANNEL]  >> 1; // half Vin so we can boost up to 6dB in filters
-    fsample[RIGHTCHANNEL] = sample[RIGHTCHANNEL] >> 1;
-
+void Audio::DSP(float *fsample) {
     //Stereo wide
     if (m_f_stereoWide) {
         static float wideness = 0.4;
@@ -4336,6 +4326,22 @@ bool Audio::playSample(int16_t sample[2]) {
     IIR_filterChain1(fsample);
     IIR_filterChain2(fsample);
     //-------------------------------------------
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+bool Audio::playSample(int16_t sample[2]) {
+    float fsample[2];
+
+    if (getBitsPerSample() == 8) { // Upsample from unsigned 8 bits to signed 16 bits
+        sample[LEFTCHANNEL]  = ((sample[LEFTCHANNEL]  & 0xff) -128) << 8;
+        sample[RIGHTCHANNEL] = ((sample[RIGHTCHANNEL] & 0xff) -128) << 8;
+    }
+
+
+    fsample[LEFTCHANNEL]  = sample[LEFTCHANNEL]  >> 1; // half Vin so we can boost up to 6dB in filters
+    fsample[RIGHTCHANNEL] = sample[RIGHTCHANNEL] >> 1;
+
+    DSP(fsample);
 
     uint32_t s32 = Gain(fsample); // vosample2lume;
 

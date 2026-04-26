@@ -7,6 +7,9 @@ void powerButton() {
   if (!powerOff) {
     webradioStop();
     wifiDisconnect();
+#ifdef BLUETOOTH
+    stopBT();
+#endif
     clearProgLbl();
     setSigStrengthLbl("");
     setObjectVisibility();

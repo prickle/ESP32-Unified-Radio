@@ -207,6 +207,8 @@ public:
     bool setSampleRate(uint32_t hz);
     bool setBitsPerSample(int bits);
     bool setChannels(int channels);
+    bool playSample(int16_t sample[2]);
+    int32_t Gain(float s[2]);
 
 private:
 
@@ -239,9 +241,8 @@ private:
     int  read_OGG_Header(uint8_t *data, size_t len);
     bool setBitrate(int br);
     bool playChunk();
-    bool playSample(int16_t sample[2]) ;
+    void DSP(float *fsample);
     void playI2Sremains();
-    int32_t Gain(float s[2]);
     bool fill_InputBuf();
     void showstreamtitle(const char* ml);
     bool parseContentType(const char* ct);

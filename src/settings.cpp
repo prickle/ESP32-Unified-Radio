@@ -815,6 +815,9 @@ void dabVolumeAction(lv_event_t * event) {
   setVolume(settings->dabVolume);
 #else
   setDspVolume(settings->dabVolume);
+#endif
+#ifdef BLUETOOTH
+  notifyVolumeChange(settings->dabVolume);
 #endif  
 }
 

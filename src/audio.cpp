@@ -26,10 +26,15 @@ bool newFtp = false;
 //Retry timer
 unsigned long retryms = 0;
 
+#ifdef BLUETOOTH
+bool btRunning = false;
+#endif
+
 //Webradio commands
 enum : uint8_t { WR_START, WR_SETVOLUME, WR_GETVOLUME, WR_CONNECTTOHOST, WR_CONNECTTOFS, WR_STOPSONG, 
                  WR_META, WR_CONNECTING, WR_SETTONE, WR_STATS, WR_TITLE, WR_STATION, WR_ICYURL, WR_DELETE, 
-                 WR_VU, WR_EOF, WR_EMBED, WR_RESPONSE, WR_MONO, WR_SRATE, WR_SETWIDE };
+                 WR_VU, WR_EOF, WR_EMBED, WR_RESPONSE, WR_MONO, WR_SRATE, WR_SETWIDE, 
+                 WR_BTSTART, WR_BTSTOP, WR_BTMSG, WR_BTVOL };
 
 //Webradio message
 struct audioMessage{
@@ -131,8 +136,17 @@ void setDspVolume(uint8_t volume) {
 }
 
 #if !defined(MONKEYBOARD) && !defined(NXP6686)
-void setVolume(uint8_t volume) { setDspVolume(volume); }
+void setVolume(uint8_t volume) { 
+  setDspVolume(volume);
+}
 #endif
+
+void notifyVolumeChange(uint8_t volume) {
+  if (!audioSetQueue) return;
+  audioTxMessage.cmd = WR_BTVOL;
+  audioTxMessage.value1 = volume;
+  xQueueSend(audioSetQueue, &audioTxMessage, 0);
+}
 
 //Stereo Wide
 void setStereoWide(bool wide) {
@@ -177,6 +191,18 @@ void connectToFS(char * path, uint32_t resumePos) {
     newFile = true;
     wrResume = resumePos;
   }
+}
+
+void startBluetooth() {
+  if (!audioSetQueue) return;
+  audioTxMessage.cmd = WR_BTSTART;
+  xQueueSend(audioSetQueue, &audioTxMessage, 0);
+}
+
+void stopBluetooth() {
+  if (!audioSetQueue) return;
+  audioTxMessage.cmd = WR_BTSTOP;
+  xQueueSend(audioSetQueue, &audioTxMessage, 0);
 }
 
 //Stop playback
@@ -374,7 +400,7 @@ void webradioHandle() {
           //Print the saved short name
           info(NOW, 0, webStationName);
         //See if we have this station  
-        if (strlen(webStationName) > 0 && !stationInList(settings->server)) {
+        if (settings->mode != MODE_BT && (webStationName) > 0 && !stationInList(settings->server)) {
           char buf[64];
           snprintf(buf, 63, " " LV_SYMBOL_DOWNLOAD "  Keep '%s'?", webStationName);
           popup(buf, addNewStation, true);
@@ -437,6 +463,16 @@ void webradioHandle() {
     else if (audioRxMessage.cmd == WR_EMBED) {
       //Hardly worth the bother..
       //artFoundEmbedded(audioRxMessage.value1, audioRxMessage.value2);
+    }
+    else if (audioRxMessage.cmd == WR_BTMSG) {
+      bluetoothMessage(audioRxMessage.value1, audioRxMessage.value2, audioRxMessage.txt);
+    }
+    else if (audioRxMessage.cmd == WR_BTSTART) {
+      info(NAME, 0, LV_SYMBOL_BLUETOOTH " Bluetooth ready");
+      serial.println("> Bluetooth started.");
+    }
+    else if (audioRxMessage.cmd == WR_BTSTOP) {
+      serial.println("> Bluetooth stopped.");
     }
     else if (audioRxMessage.cmd == WR_DELETE) {
       //Webradio thread has self-destructed, tidy up on this side by deleting the queues
@@ -661,6 +697,28 @@ bool setOutput(bool external) {
 }
 #endif
 
+#ifdef BLUETOOTH
+//Notify main thread we have a notification from BT
+void btNotify(uint32_t source, uint32_t val, const char* msg) {
+  struct audioMessage audioTxTaskMessage;
+  audioTxTaskMessage.cmd = WR_BTMSG;
+  audioTxTaskMessage.value1 = source;
+  audioTxTaskMessage.value2 = val;
+  audioTxTaskMessage.txt = msg;
+  xQueueSend(audioGetQueue, &audioTxTaskMessage, portMAX_DELAY);
+}
+
+void cancelBTconnection() {
+  struct audioMessage audioTxTaskMessage;
+  if (btRunning) {
+    stopBT();
+    audioTxTaskMessage.cmd = WR_BTSTOP;
+    xQueueSend(audioGetQueue, &audioTxTaskMessage, portMAX_DELAY);
+  }  
+}
+
+#endif
+
 //Handle Webradio in a task on the WiFi CPU
 void radioTask( void * pvParameters ) {
   static unsigned long lastms = 0;
@@ -683,7 +741,7 @@ void radioTask( void * pvParameters ) {
 #endif  
   if (audioGetQueue) xQueueSend(audioGetQueue, &audioTxTaskMessage, portMAX_DELAY);
   for(;;) {                     //Infinite loop
-    if (!audio->isRunning()) sleep(1);
+    if (!audio->isRunning() && !btRunning) sleep(1);
     else taskYIELD(); //vTaskDelay(1); //taskYIELD();                  //Allow other tasks to run
     //Got a message from the main thread?
     if(audioSetQueue && xQueueReceive(audioSetQueue, &audioRxTaskMessage, 1) == pdPASS) {
@@ -701,6 +759,7 @@ void radioTask( void * pvParameters ) {
       }
       //Play Webradio
       else if(audioRxTaskMessage.cmd == WR_CONNECTTOHOST){
+        cancelBTconnection();
         audioTxTaskMessage.cmd = WR_CONNECTTOHOST;
         const char* host = audioRxTaskMessage.txt;
         audioTxTaskMessage.ret = StartNewURL(host, audioRxTaskMessage.value1);
@@ -709,6 +768,7 @@ void radioTask( void * pvParameters ) {
       }
       //Play File or FTP
       else if(audioRxTaskMessage.cmd == WR_CONNECTTOFS){
+        cancelBTconnection();
         audioTxTaskMessage.cmd = WR_CONNECTTOFS;
         metaArtist = metaAlbum = metaTitle = metaYear = "";
         if (audioRxTaskMessage.txt[0] == 'D') //file on the SD card
@@ -727,6 +787,7 @@ void radioTask( void * pvParameters ) {
       }
       //Stop song
       else if(audioRxTaskMessage.cmd == WR_STOPSONG){
+        cancelBTconnection();
         audioTxTaskMessage.cmd = WR_STOPSONG;
         audioTxTaskMessage.ret = audio->stopSong();
         audio->setDefaults();     //Free memory
@@ -736,6 +797,24 @@ void radioTask( void * pvParameters ) {
       else if(audioRxTaskMessage.cmd == WR_SETTONE){
         updateVSTone(audioRxTaskMessage.value1);
       }
+      //Start bluetooth
+      else if(audioRxTaskMessage.cmd == WR_BTSTART){
+        if (!btRunning) {
+          audio->stopSong();
+          startBT();
+          audioTxTaskMessage.cmd = WR_BTSTART;
+          xQueueSend(audioGetQueue, &audioTxTaskMessage, portMAX_DELAY);
+          btRunning = true;
+        }
+      }      
+      else if(audioRxTaskMessage.cmd == WR_BTVOL){
+#ifdef BLUETOOTH
+        BTvolchange(audioRxTaskMessage.value1);
+#endif
+      }      
+      else if(audioRxTaskMessage.cmd == WR_BTSTOP){
+        cancelBTconnection();
+      }      
       //Delete the task and free memory
       else if(audioRxTaskMessage.cmd == WR_DELETE){
         audioTxTaskMessage.cmd = WR_DELETE;
@@ -744,7 +823,7 @@ void radioTask( void * pvParameters ) {
         delete(audio);
         audio = NULL;
         vTaskDelete(NULL);
-      }
+      }      
       //Don't know?
       else{
         log_e("Unknown audioTaskMessage");
@@ -773,3 +852,21 @@ void radioTask( void * pvParameters ) {
     audio->loop();
   }
 }  
+
+bool setSampleRate(uint32_t hz) {
+  if (!audio) return false;
+  return audio->setSampleRate(hz);
+}
+bool setBitsPerSample(int bits) {
+  if (!audio) return false;
+  return audio->setBitsPerSample(bits);
+}
+bool setChannels(int channels) {
+  if (!audio) return false;
+return audio->setChannels(channels);
+}
+bool playSample(int16_t sample[2]) {
+  if (!audio) return false;
+  return audio->playSample(sample);
+}
+

@@ -636,6 +636,7 @@ void setRadioMode(int mode) {
   sdSongFinished();
   closePopup(true);
   hideWebControls();
+  stopBluetooth();
 #ifdef MONKEYBOARD
   dabStop();
 #endif
@@ -725,9 +726,8 @@ void setRadioMode(int mode) {
   }
 #ifdef BLUETOOTH  
   else if (settings->mode == MODE_BT) {
-    startBT();
-    //prepareI2S(); 
-    //setupBluetooth();
+    prepareI2S(); 
+    startBluetooth();
   }
 #endif  
   updateUrlEditText();
@@ -1056,9 +1056,10 @@ void createTerminalWindow(lv_obj_t *win) {
 
 #ifdef LOG_REDIRECT
   termDropdown = lv_dropdown_create(win);
+  lv_obj_update_layout(win);
   lv_obj_set_pos(termDropdown, lv_obj_get_content_width(win) - 50, 0);
   lv_obj_set_size(termDropdown, 48, 22);
-  lv_obj_add_flag(termDropdown, LV_OBJ_FLAG_FLOATING);
+  //lv_obj_add_flag(termDropdown, LV_OBJ_FLAG_FLOATING);
   lv_obj_set_style_bg_color(termDropdown, lv_color_black(), LV_PART_MAIN);
   lv_obj_set_style_border_width(termDropdown, 1, LV_PART_MAIN);
   lv_obj_set_style_border_color(termDropdown, lv_color_hex(0x303030), LV_PART_MAIN);
