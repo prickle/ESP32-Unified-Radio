@@ -50,7 +50,7 @@ Note that the included libraries have been modified for this project. All code r
 - Also receives FM with RDS Support
 - Requires access to Monkeyboard library, contact me
 
-**Bluetooth**
+**Bluetooth Speaker**
 - Only on ESP32 (not S3)
 - Bluetooth audio receiver
 - Remote volume control
