@@ -447,6 +447,11 @@
 #include <Audio.h> //see repository at github "https://github.com/schreibfaul1/ESP32-audioI2S"
 // 'AAC_ENABLE_SBR' can be deactivated in 'aac_decoder.h', saves ~ 60KB
 
+//No bluetooth on S3
+#ifdef CONFIG_IDF_TARGET_ESP32S3
+#undef BLUETOOTH
+#endif
+
 #ifdef BLUETOOTH
 // bluetooth, config, discover and audio
 #include "esp_bt.h"

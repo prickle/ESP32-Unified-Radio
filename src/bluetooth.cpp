@@ -40,7 +40,7 @@ void bluetoothMessage(uint32_t source, uint32_t val, const char* txt) {
   else if (source == BT_META_EVENT) {
     if (val == ESP_AVRC_MD_ATTR_TITLE) audio_showstreamtitle(txt);
     else if (val == ESP_AVRC_MD_ATTR_ARTIST) audio_showstation(txt);
-    serial.printf(">: %d: %s\r\n", val, txt);
+    //serial.printf(">: %d: %s\r\n", val, txt);
   }
   else if (source == BT_STATE_EVENT) {
     if (val == ESP_AVRC_PLAYBACK_PLAYING) info(TEXT, 0, LV_SYMBOL_PLAY " Playing");
@@ -79,7 +79,7 @@ static esp_avrc_rn_evt_cap_mask_t s_avrc_peer_rn_cap;
 //Start the Bluetooth stack - called from the audio thread
 void startBT() {
   // set up bluetooth classic via bluedroid
-  //esp_bt_controller_mem_release(ESP_BT_MODE_BLE);
+  esp_bt_controller_mem_release(ESP_BT_MODE_BLE);
   setSampleRate(44100);
   setBitsPerSample(16);
   setChannels(2);
