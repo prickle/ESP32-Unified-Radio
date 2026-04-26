@@ -400,7 +400,7 @@ void webradioHandle() {
           //Print the saved short name
           info(NOW, 0, webStationName);
         //See if we have this station  
-        if (settings->mode != MODE_BT && (webStationName) > 0 && !stationInList(settings->server)) {
+        if (settings->mode != MODE_BT && strlen(webStationName) > 0 && !stationInList(settings->server)) {
           char buf[64];
           snprintf(buf, 63, " " LV_SYMBOL_DOWNLOAD "  Keep '%s'?", webStationName);
           popup(buf, addNewStation, true);
