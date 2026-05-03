@@ -498,6 +498,7 @@ bool playSample(int16_t sample[2]);
 void startBluetooth();
 void stopBluetooth();
 void btNotify(uint32_t source, uint32_t val, const char* msg);
+void passBluetooth(uint8_t key, uint8_t state);
 void audio_showstation(const char *info);
 void audio_showstreamtitle(const char *info);
 #endif
@@ -529,11 +530,13 @@ void browserListMenu(lv_event_t * event);
 
 #ifdef BLUETOOTH
 //bluetooth.cpp
+lv_obj_t* createTransportWidget(lv_obj_t* parent);
 void bluetoothMessage(uint32_t source, uint32_t val, const char* txt);
 void startBT();
 void handleBT();
 void stopBT();
 void BTvolchange(uint32_t vol);
+void BTpassthrough(uint8_t code, uint8_t state);
 #endif
 
 //buttons.cpp
@@ -620,6 +623,7 @@ void setBufMeter(int val);
 void setTimeBar(int pct);
 void clearProgLbl();
 void printBufStat(bool wrIsRunning, int wrCodec, int wrBitrate);
+void printBufStat(const char* symbol, const char* codec, int bitrate);
 void setupInfoLabels();
 void info(uint8_t field, int time, const char * format, ...);
 void infoLabelHandle();

@@ -33,7 +33,7 @@ void setup(void)
 #ifndef BOARD_HAS_PSRAM
   errorHalt("*** WARNING - PSRAM Must be enabled!");
 #endif  
-  serial.println("> Radio v6.0 Nick Metcalfe 4/2024.");
+  serial.println("> Radio v7.0 Nick Metcalfe 5/2026.");
   //Get the EEPROM going, we need settings early in the startup process
   initSettings();
   setupModes();                   //Construct mode lists

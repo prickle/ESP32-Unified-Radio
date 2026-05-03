@@ -1,21 +1,177 @@
 #include "decls.h"
-
 #ifdef BLUETOOTH
 
-// bluetooth, config, discover and audio
-#include "esp_bt.h"
-#include "esp_bt_main.h"
-#include "esp_bt_device.h"
-#include "esp_gap_bt_api.h"
-#include "esp_a2dp_api.h"
-#include "esp_avrc_api.h"
+lv_obj_t* transportContainer;
+lv_obj_t* backBtn;
+lv_obj_t* rewBtn;
+lv_obj_t* playBtn;
+lv_obj_t* playBtnLbl;
+lv_obj_t* stopBtn;
+lv_obj_t* ffBtn;
+lv_obj_t* forwardBtn;
 
+static void backBtn_action(lv_event_t * event);
+static void rewBtn_action(lv_event_t * event);
+static void playBtn_action(lv_event_t * event);
+static void stopBtn_action(lv_event_t * event);
+static void ffBtn_action(lv_event_t * event);
+static void forwardBtn_action(lv_event_t * event);
+
+bool playButtonState = false;
+int currentPlayStatus = ESP_AVRC_PLAYBACK_STOPPED;
+int currentSampleRate = 0;
+
+lv_obj_t* createTransportWidget(lv_obj_t* parent) {
+  transportContainer = lv_obj_create(parent);
+  lv_obj_add_style(transportContainer, &style_groupbox, LV_PART_MAIN);
+  lv_obj_clear_flag(transportContainer, LV_OBJ_FLAG_SCROLLABLE);
+#if (TFT_WIDTH == 480)
+  lv_obj_set_size(transportContainer, 460, 50);
+#else
+  lv_obj_set_size(transportContainer, 312, 50);
+#endif
+
+  backBtn = lv_btn_create(transportContainer);
+  lv_obj_set_size(backBtn, 44, 34);
+  lv_obj_add_style(backBtn, &style_wp, LV_PART_MAIN);
+  lv_obj_add_style(backBtn, &style_bigfont_orange, LV_PART_MAIN);
+  lv_obj_add_style(backBtn, &style_bigfont_orange, LV_PART_SELECTED);
+  lv_obj_set_pos(backBtn, 2, 0);
+  lv_obj_add_event_cb(backBtn, backBtn_action, LV_EVENT_ALL, NULL);
+  lv_obj_t * label = lv_label_create(backBtn);
+  lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+  lv_label_set_text(label, LV_SYMBOL_PREV);
+
+  rewBtn = lv_btn_create(transportContainer);
+  lv_obj_set_size(rewBtn, 44, 34);
+  lv_obj_add_style(rewBtn, &style_wp, LV_PART_MAIN);
+  lv_obj_add_style(rewBtn, &style_bigfont_orange, LV_PART_MAIN);
+  lv_obj_add_style(rewBtn, &style_bigfont_orange, LV_PART_SELECTED);
+  lv_obj_align_to(rewBtn, backBtn, LV_ALIGN_OUT_RIGHT_MID, 6, 0);
+  lv_obj_add_event_cb(rewBtn, rewBtn_action, LV_EVENT_ALL, NULL);
+  label = lv_label_create(rewBtn);
+  lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+  lv_label_set_text(label, LV_SYMBOL_LEFT);
+
+  playBtn = lv_btn_create(transportContainer);
+  lv_obj_set_size(playBtn, 44, 34);
+  lv_obj_add_style(playBtn, &style_wp, LV_PART_MAIN);
+  lv_obj_add_style(playBtn, &style_bigfont_orange, LV_PART_MAIN);
+  lv_obj_add_style(playBtn, &style_bigfont_orange, LV_PART_SELECTED);
+  lv_obj_align_to(playBtn, rewBtn, LV_ALIGN_OUT_RIGHT_MID, 6, 0);
+  lv_obj_add_event_cb(playBtn, playBtn_action, LV_EVENT_ALL, NULL);
+  playBtnLbl = lv_label_create(playBtn);
+  lv_obj_align(playBtnLbl, LV_ALIGN_CENTER, 0, 0);
+  lv_label_set_text(playBtnLbl, LV_SYMBOL_PLAY);
+
+  stopBtn = lv_btn_create(transportContainer);
+  lv_obj_set_size(stopBtn, 44, 34);
+  lv_obj_add_style(stopBtn, &style_wp, LV_PART_MAIN);
+  lv_obj_add_style(stopBtn, &style_bigfont_orange, LV_PART_MAIN);
+  lv_obj_add_style(stopBtn, &style_bigfont_orange, LV_PART_SELECTED);
+  lv_obj_align_to(stopBtn, playBtn, LV_ALIGN_OUT_RIGHT_MID, 6, 0);
+  lv_obj_add_event_cb(stopBtn, stopBtn_action, LV_EVENT_ALL, NULL);
+  label = lv_label_create(stopBtn);
+  lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+  lv_label_set_text(label, LV_SYMBOL_STOP);
+
+  ffBtn = lv_btn_create(transportContainer);
+  lv_obj_set_size(ffBtn, 44, 34);
+  lv_obj_add_style(ffBtn, &style_wp, LV_PART_MAIN);
+  lv_obj_add_style(ffBtn, &style_bigfont_orange, LV_PART_MAIN);
+  lv_obj_add_style(ffBtn, &style_bigfont_orange, LV_PART_SELECTED);
+  lv_obj_align_to(ffBtn, stopBtn, LV_ALIGN_OUT_RIGHT_MID, 6, 0);
+  lv_obj_add_event_cb(ffBtn, ffBtn_action, LV_EVENT_ALL, NULL);
+  label = lv_label_create(ffBtn);
+  lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+  lv_label_set_text(label, LV_SYMBOL_RIGHT);
+
+  forwardBtn = lv_btn_create(transportContainer);
+  lv_obj_set_size(forwardBtn, 44, 34);
+  lv_obj_add_style(forwardBtn, &style_wp, LV_PART_MAIN);
+  lv_obj_add_style(forwardBtn, &style_bigfont_orange, LV_PART_MAIN);
+  lv_obj_add_style(forwardBtn, &style_bigfont_orange, LV_PART_SELECTED);
+  lv_obj_align_to(forwardBtn, ffBtn, LV_ALIGN_OUT_RIGHT_MID, 6, 0);
+  lv_obj_add_event_cb(forwardBtn, forwardBtn_action, LV_EVENT_ALL, NULL);
+  label = lv_label_create(forwardBtn);
+  lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+  lv_label_set_text(label, LV_SYMBOL_NEXT);
+  return transportContainer;  
+}
+
+static void backBtn_action(lv_event_t * event) {
+  lv_event_code_t code = lv_event_get_code(event);
+  if (code == LV_EVENT_PRESSED) passBluetooth(ESP_AVRC_PT_CMD_BACKWARD, ESP_AVRC_PT_CMD_STATE_PRESSED);
+  if (code == LV_EVENT_RELEASED) passBluetooth(ESP_AVRC_PT_CMD_BACKWARD, ESP_AVRC_PT_CMD_STATE_RELEASED);
+}
+
+static void rewBtn_action(lv_event_t * event) {
+  lv_event_code_t code = lv_event_get_code(event);
+  if (code == LV_EVENT_PRESSED) passBluetooth(ESP_AVRC_PT_CMD_REWIND, ESP_AVRC_PT_CMD_STATE_PRESSED);
+  if (code == LV_EVENT_RELEASED) passBluetooth(ESP_AVRC_PT_CMD_REWIND, ESP_AVRC_PT_CMD_STATE_RELEASED);
+}
+
+void updatePlayButton() {
+  bool playing = (currentPlayStatus == ESP_AVRC_PLAYBACK_PLAYING) || 
+                 (currentPlayStatus == ESP_AVRC_PLAYBACK_FWD_SEEK) || 
+                 (currentPlayStatus == ESP_AVRC_PLAYBACK_REV_SEEK);
+  if (playButtonState != playing) {
+    playButtonState = playing;
+    if (playing) {
+      lv_label_set_text(playBtnLbl, LV_SYMBOL_PAUSE);
+    } else {
+      lv_label_set_text(playBtnLbl, LV_SYMBOL_PLAY);
+    }
+  }
+}
+
+static void playBtn_action(lv_event_t * event) {
+  lv_event_code_t code = lv_event_get_code(event);
+  if (playButtonState) {
+    if (code == LV_EVENT_PRESSED) passBluetooth(ESP_AVRC_PT_CMD_PAUSE, ESP_AVRC_PT_CMD_STATE_PRESSED);
+    if (code == LV_EVENT_RELEASED) passBluetooth(ESP_AVRC_PT_CMD_PAUSE, ESP_AVRC_PT_CMD_STATE_RELEASED);
+  } else {    
+    if (code == LV_EVENT_PRESSED) passBluetooth(ESP_AVRC_PT_CMD_PLAY, ESP_AVRC_PT_CMD_STATE_PRESSED);
+    if (code == LV_EVENT_RELEASED) passBluetooth(ESP_AVRC_PT_CMD_PLAY, ESP_AVRC_PT_CMD_STATE_RELEASED);
+  }
+}
+
+static void stopBtn_action(lv_event_t * event) {
+  lv_event_code_t code = lv_event_get_code(event);  
+  if (code == LV_EVENT_PRESSED) passBluetooth(ESP_AVRC_PT_CMD_STOP, ESP_AVRC_PT_CMD_STATE_PRESSED);
+  if (code == LV_EVENT_RELEASED) passBluetooth(ESP_AVRC_PT_CMD_STOP, ESP_AVRC_PT_CMD_STATE_RELEASED);
+}
+
+static void ffBtn_action(lv_event_t * event) {
+  lv_event_code_t code = lv_event_get_code(event);  
+  if (code == LV_EVENT_PRESSED) passBluetooth(ESP_AVRC_PT_CMD_FAST_FORWARD, ESP_AVRC_PT_CMD_STATE_PRESSED);
+  if (code == LV_EVENT_RELEASED) passBluetooth(ESP_AVRC_PT_CMD_FAST_FORWARD, ESP_AVRC_PT_CMD_STATE_RELEASED);
+}
+
+static void forwardBtn_action(lv_event_t * event) {
+  lv_event_code_t code = lv_event_get_code(event);  
+  if (code == LV_EVENT_PRESSED) passBluetooth(ESP_AVRC_PT_CMD_FORWARD, ESP_AVRC_PT_CMD_STATE_PRESSED);
+  if (code == LV_EVENT_RELEASED) passBluetooth(ESP_AVRC_PT_CMD_FORWARD, ESP_AVRC_PT_CMD_STATE_RELEASED);
+}
+
+void updateStat() {
+  const char* symbol = "?";
+  if (currentPlayStatus == ESP_AVRC_PLAYBACK_PLAYING) symbol = LV_SYMBOL_PLAY;
+  else if (currentPlayStatus == ESP_AVRC_PLAYBACK_STOPPED) symbol = LV_SYMBOL_STOP;
+  else if (currentPlayStatus == ESP_AVRC_PLAYBACK_PAUSED) symbol = LV_SYMBOL_PAUSE;
+  else if (currentPlayStatus == ESP_AVRC_PLAYBACK_FWD_SEEK) symbol = LV_SYMBOL_RIGHT;
+  else if (currentPlayStatus == ESP_AVRC_PLAYBACK_REV_SEEK) symbol = LV_SYMBOL_LEFT;
+  printBufStat(symbol, "SBC", currentSampleRate * 16);
+}
+
+//Bluetooth events
 #define BT_GAP_EVENT 0
 #define BT_CONN_EVENT 1
 #define BT_VOL_EVENT 2
 #define BT_META_EVENT 3
 #define BT_STATE_EVENT 4
 #define BT_SR_EVENT 5
+#define BT_POS_EVENT 6
 
 //Called from audio message handler to deal with bluetooth related messages
 void bluetoothMessage(uint32_t source, uint32_t val, const char* txt) {
@@ -43,15 +199,22 @@ void bluetoothMessage(uint32_t source, uint32_t val, const char* txt) {
     //serial.printf(">: %d: %s\r\n", val, txt);
   }
   else if (source == BT_STATE_EVENT) {
+    currentPlayStatus = val;
     if (val == ESP_AVRC_PLAYBACK_PLAYING) info(TEXT, 0, LV_SYMBOL_PLAY " Playing");
     else if (val == ESP_AVRC_PLAYBACK_STOPPED) info(TEXT, 0, LV_SYMBOL_STOP " Stopped");
     else if (val == ESP_AVRC_PLAYBACK_PAUSED) info(TEXT, 0, LV_SYMBOL_PAUSE " Paused");
-    else if (val == ESP_AVRC_PLAYBACK_FWD_SEEK) info(TEXT, 0, LV_SYMBOL_LEFT " Forward");
-    else if (val == ESP_AVRC_PLAYBACK_REV_SEEK) info(TEXT, 0, LV_SYMBOL_RIGHT " Reverse");
+    else if (val == ESP_AVRC_PLAYBACK_FWD_SEEK) info(TEXT, 0, LV_SYMBOL_RIGHT " Forward");
+    else if (val == ESP_AVRC_PLAYBACK_REV_SEEK) info(TEXT, 0, LV_SYMBOL_LEFT " Reverse");
+    updateStat();
+    updatePlayButton();
   }
   else if (source == BT_SR_EVENT) {
-    setSampleRate(val);
-    serial.printf("> BT Set Sample Rate: %d\r\n", val);
+    currentSampleRate = val;
+    setSampleRate(currentSampleRate);
+    updateStat();
+  }
+  else if (source == BT_POS_EVENT) {
+    //Not using this right now
   }
 }
 
@@ -64,8 +227,11 @@ void bt_rc_ct_cb(esp_avrc_ct_cb_event_t event, esp_avrc_ct_cb_param_t *param);
 void bt_rc_tg_cb(esp_avrc_tg_cb_event_t event, esp_avrc_tg_cb_param_t *param);
 void bt_a2d_cb(esp_a2d_cb_event_t event, esp_a2d_cb_param_t *param);
 
+bool btConnected = false;
 bool btVolNotify = false;
+bool btPassNotify = false;
 uint8_t btVolume = 0;
+uint16_t btRemoteFeaturesFlag = 0;
 
 // AVRCP used transaction label
 #define APP_RC_CT_TL_GET_CAPS            (0)
@@ -73,8 +239,11 @@ uint8_t btVolume = 0;
 #define APP_RC_CT_TL_RN_TRACK_CHANGE     (2)
 #define APP_RC_CT_TL_RN_PLAYBACK_CHANGE  (3)
 #define APP_RC_CT_TL_RN_PLAY_POS_CHANGE  (4)
+#define ESP_AVRC_FEAT_FLAG_TG_COVER_ART  (0x0100)                     /*!< TG support Cover Art */
+
 
 static esp_avrc_rn_evt_cap_mask_t s_avrc_peer_rn_cap;
+
 
 //Start the Bluetooth stack - called from the audio thread
 void startBT() {
@@ -141,13 +310,24 @@ void stopBT() {
   esp_bt_controller_deinit();
 }
 
+//Send volume change - called from audio thread
 void BTvolchange(uint32_t vol) {
   btVolume = vol * 127.0f / 21.0f;
-  if (btVolNotify) {
+  if (btConnected && btVolNotify) {
     esp_avrc_rn_param_t rn_param;
     rn_param.volume = btVolume;
     esp_avrc_tg_send_rn_rsp(ESP_AVRC_RN_VOLUME_CHANGE, ESP_AVRC_RN_RSP_CHANGED, &rn_param);
     btVolNotify = false;
+  }
+}
+
+//Send passthrough - called from audio thread
+void BTpassthrough(uint8_t code, uint8_t state) {
+  static uint8_t tl = 0;
+  if (btConnected) {
+    esp_avrc_ct_send_passthrough_cmd(tl, code, state);
+    btPassNotify = false;
+    tl = (tl + 1) % 16;
   }
 }
 
@@ -242,6 +422,15 @@ void bt_rc_ct_cb(esp_avrc_ct_cb_event_t event, esp_avrc_ct_cb_param_t *param) {
       Serial.printf("AVRC passthrough rsp: key_code 0x%x, key_state %d\r\n",
                param->psth_rsp.key_code, param->psth_rsp.key_state);
       break;
+    case ESP_AVRC_CT_REMOTE_FEATURES_EVT: {
+      //Serial.printf("AVRC remote features %x\r\n", param->rmt_feats.feat_mask);
+      btRemoteFeaturesFlag = param->rmt_feats.tg_feat_flag;
+      if ((param->rmt_feats.tg_feat_flag & ESP_AVRC_FEAT_FLAG_TG_COVER_ART)) {
+        Serial.println("> BT: Peer support Cover Art feature");
+        // start the cover art connection
+      }      
+      break;
+    }
     case ESP_AVRC_CT_CHANGE_NOTIFY_EVT:
         switch (param->change_ntf.event_id) {
         case ESP_AVRC_RN_TRACK_CHANGE:
@@ -255,6 +444,7 @@ void bt_rc_ct_cb(esp_avrc_ct_cb_event_t event, esp_avrc_ct_cb_param_t *param) {
         case ESP_AVRC_RN_PLAY_POS_CHANGED:
           //Serial.printf("Play position changed: %d-ms\r\n",
           //        param->change_ntf.event_parameter.play_pos);
+          btNotify(BT_POS_EVENT, param->change_ntf.event_parameter.play_pos, "");
           bt_av_play_pos_changed();
           break;
 
@@ -263,10 +453,6 @@ void bt_rc_ct_cb(esp_avrc_ct_cb_event_t event, esp_avrc_ct_cb_param_t *param) {
           break;
       }
       break;
-    case ESP_AVRC_CT_REMOTE_FEATURES_EVT: {
-      //Serial.printf("AVRC remote features %x\r\n", param->rmt_feats.feat_mask);
-      break;
-    }
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 0, 0)
 
@@ -337,15 +523,15 @@ void bt_a2d_cb(esp_a2d_cb_event_t event, esp_a2d_cb_param_t *param)
     break;
   }
   case ESP_A2D_AUDIO_STATE_EVT: {
-/*    if (ESP_A2D_AUDIO_STATE_STARTED == param->audio_stat.state) {
-      btNotify(BT_STATE_EVENT, BT_STATE_PLAY, "");
+    if (ESP_A2D_AUDIO_STATE_STARTED == param->audio_stat.state) {
+      btConnected = true;
     } else if (ESP_A2D_AUDIO_STATE_STOPPED == param->audio_stat.state) {
-      btNotify(BT_STATE_EVENT, BT_STATE_STOP, "");
-    }*/
+      btConnected = false;
+    }
     break;
   }
   case ESP_A2D_AUDIO_CFG_EVT: {
-    serial.printf("> A2DP audio stream config, codec type %d\r\n", param->audio_cfg.mcc.type);
+    //Serial.printf("> A2DP audio stream config, codec type %d\r\n", param->audio_cfg.mcc.type);
     // for now only SBC stream is supported
     if (param->audio_cfg.mcc.type == ESP_A2D_MCT_SBC) {
       int sample_rate = 16000;
@@ -384,126 +570,232 @@ void bt_data_cb(const uint8_t *data, uint32_t len){
     
   }
 }
-
-
-
-#if defined(BTA2DP)
-
-#include "BluetoothA2DPSink.h"
-//#include "AudioTools.h"
-
-BluetoothA2DPSink a2dp_sink;
-
-// Write data to I2S
-void read_data_stream(const uint8_t *data, uint32_t length) {
-    // process all data
-    int16_t *values = (int16_t*) data;
-    for (int j=0; j<length/2; j+=2){
-      // print the 2 channel values
-      Serial.print(values[j]);
-      Serial.print(",");
-      Serial.println(values[j+1]);
-    }
 /*
-    // number of 16 bit sample pairs l/r
-  int n = length/4;
-  // point to a 16bit sample 
-  int16_t* data16=(int16_t*)data;
-   
-  for(int i=0;i<n;i++){
-    // put the current sample in fy
-    
-    int16_t sample[2];
+//-------------------------------------------------------------------------------------
+// Cover art
 
-    sample[0] = (*data16++); // half Vin so we can boost up to 6dB in filters
-    sample[1] = (*data16++);
-    playSample(sample);    
-  }*/
+// @brief AVRCP cover art service control block structure
+typedef struct {
+    bool connected;                          // Connection status flag 
+    bool getting;                            // Flag indicating if image is being retrieved 
+    // Related to the image 
+    uint8_t image_hdl_old[7];                // Previous image handle, used to detect image changes 
+    uint32_t image_size;                     // Size of the image data in bytes 
+    uint8_t *image_data;                     // Pointer to the image data buffer 
+    bool image_final;                        // Indicate whether the image reception has been completed 
+} avrc_ca_service_cb_t;
+
+static bool avrc_ca_handleCheck(uint8_t *image_handle, int len);
+static void avrc_ca_freeImageData(void);
+
+// avrcp cover art service control block
+static avrc_ca_service_cb_t avrc_ca_serviceControlBlock;
+
+static void avrc_ca_freeImageData(void)
+{
+    if (avrc_ca_serviceControlBlock.image_data) {
+        free(avrc_ca_serviceControlBlock.image_data);
+        avrc_ca_serviceControlBlock.image_data = NULL;
+    }
+    avrc_ca_serviceControlBlock.image_size = 0;
 }
 
-void btConnState(bool state) {
-  if (state) serial.println(">>> BT Connected.");
-  else serial.println(">>> BT Disconnected.");
+static void avrc_ca_imageReady(void)
+{
+    Serial.println("> BT JPEG image ready.");
+
 }
 
-void btPlayStatus(esp_avrc_playback_stat_t status) {
-  switch(status) {
-    case ESP_AVRC_PLAYBACK_STOPPED:                //!< stopped 
-      serial.println(">>> BT Stopped.");
-      break;
-    case ESP_AVRC_PLAYBACK_PLAYING:                //!< playing 
-      serial.println(">>> BT Playing.");
-      break;    
-    case ESP_AVRC_PLAYBACK_PAUSED:                 //!< paused 
-      serial.println(">>> BT Paused.");
-      break;
-    case ESP_AVRC_PLAYBACK_FWD_SEEK:               //!< forward seek 
-      serial.println(">>> BT Forward seek.");
-      break;
-    case ESP_AVRC_PLAYBACK_REV_SEEK:               //!< reverse seek 
-      serial.println(">>> BT Backward seek.");
-      break;
-    case ESP_AVRC_PLAYBACK_ERROR:                  //!< error 
-      serial.println(">>> BT Error!");
-      break;
-  }
+void avrc_ca_open(void)
+{
+    memset(&avrc_ca_serviceControlBlock, 0, sizeof(avrc_ca_service_cb_t));
 }
 
-void btVolChange(int vol) {
-  serial.printf(">>> BT Volume change: %d\n", vol);
+void avrc_ca_close(void)
+{
+    avrc_ca_freeImageData();
+    memset(&avrc_ca_serviceControlBlock, 0, sizeof(avrc_ca_service_cb_t));
+}
+
+bool btc_avrc_ct_check_cover_art_support(void)
+{
+    return (btRemoteFeaturesFlag & ESP_AVRC_FEAT_FLAG_TG_COVER_ART);
 }
 
 
-void btMetadata(uint8_t id, const uint8_t *text) {
-  serial.printf(">>> BT metadata rsp: attribute id 0x%x, %s\n", id, text);
+esp_err_t esp_avrc_ct_cover_art_connect(uint16_t mtu)
+{
+    if (esp_bluedroid_get_status() != ESP_BLUEDROID_STATUS_ENABLED){
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    if (!btc_avrc_ct_check_cover_art_support()) {
+        return ESP_ERR_NOT_SUPPORTED;
+    }
+
+    btc_msg_t msg;
+    msg.sig = BTC_SIG_API_CALL;
+    msg.pid = BTC_PID_AVRC_CT;
+    msg.act = BTC_AVRC_CT_API_COVER_ART_CONNECT_EVT;
+
+    btc_avrc_args_t arg;
+    memset(&arg, 0, sizeof(btc_avrc_args_t));
+    arg.ca_conn.mtu = mtu;
+
+    // Switch to BTC context 
+    bt_status_t stat = btc_transfer_context(&msg, &arg, sizeof(btc_avrc_args_t), NULL, NULL);
+    return (stat == BT_STATUS_SUCCESS) ? ESP_OK : ESP_FAIL;
 }
 
-void btSampleRate(uint16_t rate) {
-  setSampleRate(rate);
+esp_err_t esp_avrc_ct_cover_art_disconnect(void)
+{
+    if (esp_bluedroid_get_status() != ESP_BLUEDROID_STATUS_ENABLED) {
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    if (!btc_avrc_ct_check_cover_art_support()) {
+        return ESP_ERR_NOT_SUPPORTED;
+    }
+
+    btc_msg_t msg;
+    msg.sig = BTC_SIG_API_CALL;
+    msg.pid = BTC_PID_AVRC_CT;
+    msg.act = BTC_AVRC_CT_API_COVER_ART_DISCONNECT_EVT;
+
+    // Switch to BTC context
+    bt_status_t stat = btc_transfer_context(&msg, NULL, 0, NULL, NULL);
+    return (stat == BT_STATUS_SUCCESS) ? ESP_OK : ESP_FAIL;
 }
 
-void initBT() {
-  //AudioLogger::instance().begin(Serial, AudioLogger::Warning);
+esp_err_t esp_avrc_ct_cover_art_get_image_properties(uint8_t *image_handle)
+{
+    if ((esp_bluedroid_get_status() != ESP_BLUEDROID_STATUS_ENABLED) ||
+        (!btc_avrc_ct_connected_p())) {
+        return ESP_ERR_INVALID_STATE;
+    }
 
-  // register callback
-  a2dp_sink.set_output(serial);
-  a2dp_sink.set_stream_reader(read_data_stream, false);
-  a2dp_sink.set_avrc_connection_state_callback(btConnState);
-  a2dp_sink.set_avrc_rn_playstatus_callback(btPlayStatus);
-  a2dp_sink.set_avrc_rn_volumechange(btVolChange);
-  a2dp_sink.set_avrc_metadata_callback(btMetadata);
-  a2dp_sink.set_sample_rate_callback(btSampleRate);
+    if (!btc_avrc_ct_check_cover_art_support()) {
+        return ESP_ERR_NOT_SUPPORTED;
+    }
 
-  // Start Bluetooth Audio Receiver
-  a2dp_sink.set_auto_reconnect(false);
-  a2dp_sink.start("a2dp-i2s");
+    if (image_handle == NULL) {
+        return ESP_ERR_INVALID_ARG;
+    }
 
-  setSampleRate(44100);
-  setBitsPerSample(16);
-  setChannels(2);
+    btc_msg_t msg;
+    msg.sig = BTC_SIG_API_CALL;
+    msg.pid = BTC_PID_AVRC_CT;
+    msg.act = BTC_AVRC_CT_API_COVER_ART_GET_IMAGE_PROPERTIES_EVT;
+
+    btc_avrc_args_t arg;
+    memset(&arg, 0, sizeof(btc_avrc_args_t));
+    memcpy(arg.ca_get_img_prop.image_handle, image_handle, ESP_AVRC_CA_IMAGE_HANDLE_LEN);
+
+    // Switch to BTC context
+    bt_status_t stat = btc_transfer_context(&msg, &arg, sizeof(btc_avrc_args_t), NULL, NULL);
+    return (stat == BT_STATUS_SUCCESS) ? ESP_OK : ESP_FAIL;
 }
 
-void startBT() {
-  btStarting = true;
-  serial.println("> Starting Bluetooth.");
-  //if (isWebradioAllocated()) {
-  //  webRadioDelete();
-  //}
-  //m_vol = settings->vsVolume;
+esp_err_t esp_avrc_ct_cover_art_get_image(uint8_t *image_handle, uint8_t *image_descriptor, uint16_t image_descriptor_len)
+{
+    if ((esp_bluedroid_get_status() != ESP_BLUEDROID_STATUS_ENABLED) ||
+        (!btc_avrc_ct_connected_p())) {
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    if (!btc_avrc_ct_check_cover_art_support()) {
+        return ESP_ERR_NOT_SUPPORTED;
+    }
+
+    if (image_handle == NULL || image_descriptor == NULL || image_descriptor_len == 0) {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    btc_msg_t msg;
+    msg.sig = BTC_SIG_API_CALL;
+    msg.pid = BTC_PID_AVRC_CT;
+    msg.act = BTC_AVRC_CT_API_COVER_ART_GET_IMAGE_EVT;
+
+    btc_avrc_args_t arg;
+    memset(&arg, 0, sizeof(btc_avrc_args_t));
+
+    memcpy(arg.ca_get_img.image_handle, image_handle, ESP_AVRC_CA_IMAGE_HANDLE_LEN);
+    arg.ca_get_img.image_descriptor_len = image_descriptor_len;
+    arg.ca_get_img.image_descriptor = image_descriptor;
+
+    // Switch to BTC context
+    bt_status_t stat = btc_transfer_context(&msg, &arg, sizeof(btc_avrc_args_t), btc_avrc_arg_deep_copy, btc_avrc_arg_deep_free);
+    return (stat == BT_STATUS_SUCCESS) ? ESP_OK : ESP_FAIL;
 }
 
-void handleBT() {
-  //Waiting for webradio to stop
-  if(btStarting) {//} && !isWebradioAllocated()) {
-    btStarting = false;
-    initBT();
-    serial.println("> Bluetooth Started.");
-  }
+
+
+void avrc_cover_art_srv_connect(uint16_t mtu)
+{
+    if (!avrc_ca_serviceControlBlock.connected) {
+        serial.println("> BT Start cover art connection...");
+        // start the cover art connection
+        esp_avrc_ct_cover_art_connect(mtu);
+    }
 }
 
-void stopBT() {
-  a2dp_sink.end();
+void avrc_cover_art_srv_set_image_final(bool final)
+{
+    s_avrc_cover_art_srv_cb.image_final = final;
+    if (s_avrc_cover_art_srv_cb.image_final) {
+        ESP_LOGI(RC_CA_SRV_TAG, "Cover Art Client final data event, image size: %lu bytes", s_avrc_cover_art_srv_cb.image_size);
+
+        // decode and display the image 
+        avrc_cover_art_srv_decode_image();
+        // display the image 
+        avrc_cover_art_srv_display_image();
+        // set the getting state to false, we can get next image now 
+        s_avrc_cover_art_srv_cb.getting = false;
+    }
 }
-#endif
+
+void avrc_cover_art_srv_set_connected(bool connected)
+{
+    s_avrc_cover_art_srv_cb.connected = connected;
+}
+
+void avrc_cover_art_srv_ca_req(void)
+{
+    // request cover art 
+    if (s_avrc_cover_art_srv_cb.connected) {
+        uint8_t attr_mask = ESP_AVRC_MD_ATTR_COVER_ART;
+
+        esp_avrc_ct_send_metadata_cmd(bt_avrc_common_alloc_tl(), attr_mask);
+    }
+}
+
+void avrc_cover_art_srv_save_image_data(uint8_t *p_data, uint16_t data_len)
+{
+    s_avrc_cover_art_srv_cb.image_size += data_len;
+
+    uint8_t *p_buf = (uint8_t *)realloc(s_avrc_cover_art_srv_cb.image_data, s_avrc_cover_art_srv_cb.image_size * sizeof(uint8_t));
+    if (!p_buf) {
+        ESP_LOGE(RC_CA_SRV_TAG, "%s: The memory allocation of Cover art image data failed", __func__);
+        avrc_cover_art_srv_free_image_data();
+        return;
+    }
+    s_avrc_cover_art_srv_cb.image_data = p_buf;
+    memcpy(s_avrc_cover_art_srv_cb.image_data + s_avrc_cover_art_srv_cb.image_size - data_len, p_data, data_len);
+}
+
+void avrc_cover_art_srv_ct_metadata_update(uint8_t *image_handle, int len)
+{
+    if (s_avrc_cover_art_srv_cb.connected && !s_avrc_cover_art_srv_cb.getting) {
+        // check image handle is valid and different with last one, we don't want to get an image repeatedly 
+        if (avrc_cover_art_srv_image_handle_check(image_handle, len)) {
+            // free the previous image data 
+            avrc_cover_art_srv_free_image_data();
+            // get the linked thumbnail 
+            esp_avrc_ct_cover_art_get_linked_thumbnail(image_handle);
+            s_avrc_cover_art_srv_cb.getting = true;
+        }
+    }
+}
+*/
 
 #endif

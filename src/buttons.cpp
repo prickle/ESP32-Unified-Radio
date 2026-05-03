@@ -8,7 +8,7 @@ void powerButton() {
     webradioStop();
     wifiDisconnect();
 #ifdef BLUETOOTH
-    stopBT();
+    stopBluetooth();
 #endif
     clearProgLbl();
     setSigStrengthLbl("");
@@ -71,13 +71,16 @@ void encodersHandle() {
     screenSaverInteraction();
     //Volume control scroll
     int volume = settings->dabVolume + volDiff;
-    if (volume > 16) volume = 16;
+    if (volume > 21) volume = 21;
     if (volume < 0) volume = 0;
     encoderTimer = millis() + ENCODER_TIMEOUT; 
     //if (tabView && lv_tabview_get_tab_act(tabView) != 0) 
     //  lv_tabview_set_act(tabView, 0, LV_ANIM_ON);
     settings->dabVolume = volume; 
     setVolume(settings->dabVolume);
+#ifdef BLUETOOTH
+    notifyVolumeChange(settings->dabVolume);
+#endif  
     if (dabVolSlider) {
       //lv_obj_scroll_to_view(mainContainer, LV_ANIM_ON);
       lv_slider_set_value(dabVolSlider, settings->dabVolume, LV_ANIM_OFF);

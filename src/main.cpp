@@ -29,6 +29,7 @@ lv_obj_t * artImg_bar;
 lv_obj_t * seekDownBtn;
 lv_obj_t * seekUpBtn;
 lv_obj_t * receiverWidget;
+lv_obj_t * transportWidget;
 lv_obj_t * weatherWidget;
 
 lv_obj_t * signalWindow;
@@ -244,10 +245,20 @@ void createMainWindow(lv_obj_t * win) {
   lv_label_set_text(label, LV_SYMBOL_NEXT);
   lv_obj_set_hidden(seekUpBtn, true);
 
+#ifdef BLUETOOTH
+  transportWidget = createTransportWidget(mainWindow);
+#if (TFT_HEIGHT == 240) || defined(BIGWEATHER)
+  lv_obj_align_to(transportWidget, infoContainer, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);  
+#else
+  lv_obj_align_to(transportWidget, infoContainer, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);  
+#endif
+  lv_obj_set_hidden(transportWidget, true);
+#endif
+
 #ifdef SCANNER
   receiverWidget = createReceiverWidget(mainWindow);
-#if (TFT_HEIGHT == 240)
-  lv_obj_align_to(recieverWidget, infoContainer, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);  
+#if (TFT_HEIGHT == 240) || defined(BIGWEATHER)
+  lv_obj_align_to(receiverWidget, infoContainer, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);  
 #else
   lv_obj_align_to(receiverWidget, infoContainer, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);  
 #endif
@@ -334,9 +345,19 @@ void createMainWindow(lv_obj_t * win) {
 
 void realignMainWindow() {
   lv_obj_t* above = infoContainer;
+#ifdef BLUETOOTH
+  bool transportShowing = (settings->mode == MODE_BT);
+  lv_obj_set_hidden(transportWidget, !transportShowing);
+  if (transportShowing) above = transportWidget;
+#endif
 #ifdef SCANNER
   bool receiverShowing = (settings->mode == MODE_NFM || settings->mode == MODE_NLW || settings->mode == MODE_NMW || settings->mode == MODE_NSW);
   lv_obj_set_hidden(receiverWidget, !receiverShowing);
+#if (TFT_HEIGHT == 240) || defined(BIGWEATHER)
+  lv_obj_align_to(receiverWidget, above, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);  
+#else
+  lv_obj_align_to(receiverWidget, above, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);  
+#endif
   if (receiverShowing) above = receiverWidget;
 #endif
   if (weatherWidget) {
@@ -397,7 +418,7 @@ void setMainVisibility() {
   lv_obj_set_hidden(progTextLbl, settings->mode == MODE_SD || settings->mode == MODE_FTP || settings->mode == MODE_POD || settings->mode == MODE_DLNA);  
 #else
   lv_obj_set_hidden(bufLvlMeter, settings->mode != MODE_WEB && settings->mode != MODE_FTP && settings->mode != MODE_POD && settings->mode != MODE_DLNA);
-  lv_obj_set_hidden(bufStatLbl, settings->mode != MODE_WEB && settings->mode != MODE_FTP && settings->mode != MODE_POD && settings->mode != MODE_DLNA);
+  lv_obj_set_hidden(bufStatLbl, settings->mode != MODE_WEB && settings->mode != MODE_FTP && settings->mode != MODE_POD && settings->mode != MODE_DLNA && settings->mode != MODE_BT);
   lv_obj_set_hidden(progTimeBar, settings->mode != MODE_FTP && settings->mode != MODE_POD && settings->mode != MODE_DLNA);  
   lv_obj_set_hidden(progTextLbl, settings->mode == MODE_FTP || settings->mode == MODE_POD || settings->mode == MODE_DLNA);  
 #endif
@@ -514,6 +535,15 @@ void printBufStat(bool wrIsRunning, int wrCodec, int wrBitrate) {
       lv_label_set_text(bufStatLbl, buf);  //Set the text
       lv_obj_align_to(bufStatLbl, bufLvlMeter, LV_ALIGN_CENTER, 0, 4);  //Align below the label
     }
+}
+
+void printBufStat(const char* symbol, const char* codec, int bitrate) {
+  char buf[64] = "";
+  snprintf(buf, 63, "%s\n%dk\n%s", symbol, bitrate / 1024, codec);
+  if (bufStatLbl && bufLvlMeter) {
+    lv_label_set_text(bufStatLbl, buf);  //Set the text
+    lv_obj_align_to(bufStatLbl, bufLvlMeter, LV_ALIGN_CENTER, 0, 4);  //Align below the label
+  }
 }
 
 //Clear buffer widget

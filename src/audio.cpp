@@ -27,14 +27,15 @@ bool newFtp = false;
 unsigned long retryms = 0;
 
 #ifdef BLUETOOTH
-bool btRunning = false;
+bool wrBtStarting = false;
+bool wrBtStarted = false;
 #endif
 
 //Webradio commands
 enum : uint8_t { WR_START, WR_SETVOLUME, WR_GETVOLUME, WR_CONNECTTOHOST, WR_CONNECTTOFS, WR_STOPSONG, 
                  WR_META, WR_CONNECTING, WR_SETTONE, WR_STATS, WR_TITLE, WR_STATION, WR_ICYURL, WR_DELETE, 
                  WR_VU, WR_EOF, WR_EMBED, WR_RESPONSE, WR_MONO, WR_SRATE, WR_SETWIDE, 
-                 WR_BTSTART, WR_BTSTOP, WR_BTMSG, WR_BTVOL };
+                 WR_BTSTART, WR_BTSTOP, WR_BTMSG, WR_BTVOL, WR_BTPASS };
 
 //Webradio message
 struct audioMessage{
@@ -143,6 +144,7 @@ void setVolume(uint8_t volume) {
 
 void notifyVolumeChange(uint8_t volume) {
   if (!audioSetQueue) return;
+  Serial.printf("notifyVolumeChange: (%d)\r\n", volume);
   audioTxMessage.cmd = WR_BTVOL;
   audioTxMessage.value1 = volume;
   xQueueSend(audioSetQueue, &audioTxMessage, 0);
@@ -194,14 +196,21 @@ void connectToFS(char * path, uint32_t resumePos) {
 }
 
 void startBluetooth() {
-  if (!audioSetQueue) return;
-  audioTxMessage.cmd = WR_BTSTART;
-  xQueueSend(audioSetQueue, &audioTxMessage, 0);
+  wrBtStarting = true;
 }
 
 void stopBluetooth() {
-  if (!audioSetQueue) return;
+  if (!wrBtStarted || !audioSetQueue) return;
   audioTxMessage.cmd = WR_BTSTOP;
+  xQueueSend(audioSetQueue, &audioTxMessage, 0);
+  wrBtStarted = false;
+}
+
+void passBluetooth(uint8_t key, uint8_t state) {
+  if (!wrBtStarted || !audioSetQueue) return;
+  audioTxMessage.cmd = WR_BTPASS;
+  audioTxMessage.value1 = key;
+  audioTxMessage.value2 = state;
   xQueueSend(audioSetQueue, &audioTxMessage, 0);
 }
 
@@ -498,6 +507,15 @@ void webradioHandle() {
     }
 #endif    
   }
+#ifdef BLUETOOTH
+  //Wait for Wifi to disconnect
+  if (wrBtStarting && audioSetQueue && (WiFi.status() == WL_NO_SHIELD)) {
+    audioTxMessage.cmd = WR_BTSTART;
+    xQueueSend(audioSetQueue, &audioTxMessage, 0);
+    wrBtStarting = false;
+    wrBtStarted = true;
+  }
+#endif  
 #ifdef FFTMETER  
   //FFT Meter
   if(lv_tabview_get_tab_act(tabView) == mainWindowIndex) {
@@ -526,6 +544,7 @@ void webradioHandle() {
 
 String serverResponse = "";
 String connectingURL = "";
+bool bttRunning = false;
 
 //(re)start a connection from the webradio task
 uint32_t StartNewURL(const char* host, bool meta) {
@@ -698,7 +717,7 @@ bool setOutput(bool external) {
 #endif
 
 #ifdef BLUETOOTH
-//Notify main thread we have a notification from BT
+//Notify main thread we have a message from BT
 void btNotify(uint32_t source, uint32_t val, const char* msg) {
   struct audioMessage audioTxTaskMessage;
   audioTxTaskMessage.cmd = WR_BTMSG;
@@ -710,14 +729,35 @@ void btNotify(uint32_t source, uint32_t val, const char* msg) {
 
 void cancelBTconnection() {
   struct audioMessage audioTxTaskMessage;
-  if (btRunning) {
+  if (bttRunning) {
     stopBT();
     audioTxTaskMessage.cmd = WR_BTSTOP;
     xQueueSend(audioGetQueue, &audioTxTaskMessage, portMAX_DELAY);
+    bttRunning = false;
   }  
 }
 
 #endif
+
+//Manually configure the audio output
+//To be called from the audio thread context
+bool setSampleRate(uint32_t hz) {
+  if (!audio) return false;
+  return audio->setSampleRate(hz);
+}
+bool setBitsPerSample(int bits) {
+  if (!audio) return false;
+  return audio->setBitsPerSample(bits);
+}
+bool setChannels(int channels) {
+  if (!audio) return false;
+return audio->setChannels(channels);
+}
+//Send data directly to the audio output
+bool playSample(int16_t sample[2]) {
+  if (!audio) return false;
+  return audio->playSample(sample);
+}
 
 //Handle Webradio in a task on the WiFi CPU
 void radioTask( void * pvParameters ) {
@@ -741,7 +781,7 @@ void radioTask( void * pvParameters ) {
 #endif  
   if (audioGetQueue) xQueueSend(audioGetQueue, &audioTxTaskMessage, portMAX_DELAY);
   for(;;) {                     //Infinite loop
-    if (!audio->isRunning() && !btRunning) sleep(1);
+    if (!audio->isRunning() && !bttRunning) sleep(1);
     else taskYIELD(); //vTaskDelay(1); //taskYIELD();                  //Allow other tasks to run
     //Got a message from the main thread?
     if(audioSetQueue && xQueueReceive(audioSetQueue, &audioRxTaskMessage, 1) == pdPASS) {
@@ -797,24 +837,27 @@ void radioTask( void * pvParameters ) {
       else if(audioRxTaskMessage.cmd == WR_SETTONE){
         updateVSTone(audioRxTaskMessage.value1);
       }
+#ifdef BLUETOOTH
       //Start bluetooth
       else if(audioRxTaskMessage.cmd == WR_BTSTART){
-        if (!btRunning) {
+        if (!bttRunning) {
           audio->stopSong();
           startBT();
           audioTxTaskMessage.cmd = WR_BTSTART;
           xQueueSend(audioGetQueue, &audioTxTaskMessage, portMAX_DELAY);
-          btRunning = true;
+          bttRunning = true;
         }
       }      
       else if(audioRxTaskMessage.cmd == WR_BTVOL){
-#ifdef BLUETOOTH
         BTvolchange(audioRxTaskMessage.value1);
-#endif
-      }      
+      }
+      else if(audioRxTaskMessage.cmd == WR_BTPASS){
+        BTpassthrough(audioRxTaskMessage.value1, audioRxTaskMessage.value2);
+      }                  
       else if(audioRxTaskMessage.cmd == WR_BTSTOP){
         cancelBTconnection();
       }      
+#endif
       //Delete the task and free memory
       else if(audioRxTaskMessage.cmd == WR_DELETE){
         audioTxTaskMessage.cmd = WR_DELETE;
@@ -852,21 +895,3 @@ void radioTask( void * pvParameters ) {
     audio->loop();
   }
 }  
-
-bool setSampleRate(uint32_t hz) {
-  if (!audio) return false;
-  return audio->setSampleRate(hz);
-}
-bool setBitsPerSample(int bits) {
-  if (!audio) return false;
-  return audio->setBitsPerSample(bits);
-}
-bool setChannels(int channels) {
-  if (!audio) return false;
-return audio->setChannels(channels);
-}
-bool playSample(int16_t sample[2]) {
-  if (!audio) return false;
-  return audio->playSample(sample);
-}
-
