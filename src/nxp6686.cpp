@@ -8,7 +8,7 @@ TEF6686 radio;
 RdsInfo rdsInfo;
 bool nxpI2SMode = false;
 bool nxpFine = false;
-uint32_t nxpI2SRate = 44100;
+uint32_t nxpI2SRate = 0; //Ensure update
 uint8_t nxpBand = FM1_BAND;
 
 #define RDS_INTERVAL 80
@@ -97,6 +97,7 @@ int nxpBandTableIndex = 0;
 char stationName[9];
 char radioTextPrevious[65];
 
+bool NXPActive = false;
 bool NXPSearching = false;
 bool NXPSearchUp = false;
 
@@ -235,6 +236,7 @@ void NXPChangeFrequency(bool up) {
 
 void NXPStartFM() {
   radio.powerOn();
+  NXPActive = true;
   radio.setInput(TEF_SETINPUT_RADIO);
   nxpI2SMode = false;
   NXPSetBand(FM1_BAND);
@@ -251,6 +253,7 @@ void NXPStartFM() {
 
 void NXPStartMW() {
   radio.powerOn();
+  NXPActive = true;
   radio.setInput(TEF_SETINPUT_RADIO);
   nxpI2SMode = false;
   NXPSetBand(MW_BAND);
@@ -264,6 +267,7 @@ void NXPStartMW() {
 
 void NXPStartLW() {
   radio.powerOn();
+  NXPActive = true;
   radio.setInput(TEF_SETINPUT_RADIO);
   nxpI2SMode = false;
   NXPSetBand(LW_BAND);
@@ -277,6 +281,7 @@ void NXPStartLW() {
 
 void NXPStartSW() {
   radio.powerOn();
+  NXPActive = true;
   radio.setInput(TEF_SETINPUT_RADIO);
   nxpI2SMode = false;
   NXPSetBand(SW_BAND);
@@ -289,15 +294,19 @@ void NXPStartSW() {
 }
 
 void NXPStartI2S() {
-  //radio.powerOn();
+  if (!NXPActive) {
+    radio.powerOn();
+    NXPActive = true;
+  }
   radio.setInput(TEF_SETINPUT_I2S);
-  radio.setDigIO(TEF_SETDIGIO_SD0, TEF_SETDIGIO_INPUT, TEF_SETDIGIO_I2S32, TEF_SETDIGIO_SLAVE, nxpI2SRate / 10);
   nxpI2SMode = true;
+  radio.setDigIO(TEF_SETDIGIO_SD0, TEF_SETDIGIO_INPUT, TEF_SETDIGIO_I2S32, TEF_SETDIGIO_SLAVE, nxpI2SRate / 10);
   log_i("Start I2S: Sample rate %d", nxpI2SRate);
 }
 
 void NXPStop() {
   radio.powerOff();
+  NXPActive = false;
   nxpI2SMode = false;
   nxpScanState = NXPSCAN_IDLE;
 }
@@ -306,7 +315,7 @@ void NXPSetI2SRate(uint32_t rate) {
   if (nxpI2SMode && rate != nxpI2SRate) {
     //radio.powerOff();
     nxpI2SRate = rate;
-    NXPStartI2S();
+    radio.setDigIO(TEF_SETDIGIO_SD0, TEF_SETDIGIO_INPUT, TEF_SETDIGIO_I2S32, TEF_SETDIGIO_SLAVE, nxpI2SRate / 10);
   }
 }
 
