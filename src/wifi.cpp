@@ -210,6 +210,8 @@ void wifiHandle() {
   //Signal strength display
 #ifndef USE_OTA
   if (settings->mode == MODE_WEB || settings->mode == MODE_FTP || settings->mode == MODE_POD || settings->mode == MODE_DLNA) {
+#else
+  if (settings->mode != MODE_BT) {
 #endif
     if (millis() > lastms) {
       lastms = millis() + 1000;
@@ -222,10 +224,16 @@ void wifiHandle() {
         setSigStrengthLbl(s);    
       }
     }
-#ifndef USE_OTA
+  }
+#ifdef BLUETOOTH
+  if (settings->mode == MODE_BT) {
+    if (millis() > lastms) {
+      lastms = millis() + 1000;
+      if (isBtConnected()) rssiBluetooth();
+      else setSigStrengthLbl(LV_SYMBOL_WIFI " X");           
+    }
   }
 #endif
-
   //Wifi needs password - set by event from wifi thread
   if (wifiNeedPass) {
     wifiNeedPass = false;

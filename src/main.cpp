@@ -499,14 +499,27 @@ void showReloadBtn() {
   lv_obj_set_hidden(loadSpinner, true);
   lv_obj_set_hidden(reloadBtn, false);
 }
-    
+
+void showFullInfo() {
+  int width = lv_obj_get_content_width(mainWindow);
+  lv_obj_set_size(progNameLbl, width - 20, LV_SIZE_CONTENT);
+  lv_obj_set_pos(progNameLbl, 10, 5);  //Align below the label
+  lv_obj_set_size(progNowLbl, width - 20, LV_SIZE_CONTENT);
+  lv_obj_align_to(progNowLbl, progNameLbl, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);  //Align below the label
+  lv_obj_set_size(progTextLbl, width - 20, LV_SIZE_CONTENT);
+  lv_obj_align_to(progTextLbl, progNowLbl, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);
+}
+
 //Hide the spinner and reload buttons
 void hideWebControls() {
-#if (TFT_WIDTH == 480)  
-  if (progNameLbl) lv_obj_set_size(progNameLbl, 346, 25);
-#else
-  if (progNameLbl) lv_obj_set_size(progNameLbl, 204, 25);
-#endif
+  if (!mainWindow || !progNameLbl) return;
+  int width = lv_obj_get_content_width(mainWindow);
+  lv_obj_set_size(progNameLbl, width - 110, LV_SIZE_CONTENT);
+  lv_obj_align_to(progNameLbl, bufLvlMeter, LV_ALIGN_OUT_RIGHT_TOP, 10, 5);  //Align below the label
+  lv_obj_set_size(progNowLbl, width - 108, LV_SIZE_CONTENT);
+  lv_obj_align_to(progNowLbl, progNameLbl, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);  //Align below the label
+  lv_obj_set_size(progTextLbl, width - 108, LV_SIZE_CONTENT);
+  lv_obj_align_to(progTextLbl, progNowLbl, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);
   lv_obj_set_hidden(loadSpinner, true);
   lv_obj_set_hidden(reloadBtn, true);
 }
@@ -535,15 +548,6 @@ void printBufStat(bool wrIsRunning, int wrCodec, int wrBitrate) {
       lv_label_set_text(bufStatLbl, buf);  //Set the text
       lv_obj_align_to(bufStatLbl, bufLvlMeter, LV_ALIGN_CENTER, 0, 4);  //Align below the label
     }
-}
-
-void printBufStat(const char* symbol, const char* codec, int bitrate) {
-  char buf[64] = "";
-  snprintf(buf, 63, "%s\n%dk\n%s", symbol, bitrate / 1024, codec);
-  if (bufStatLbl && bufLvlMeter) {
-    lv_label_set_text(bufStatLbl, buf);  //Set the text
-    lv_obj_align_to(bufStatLbl, bufLvlMeter, LV_ALIGN_CENTER, 0, 4);  //Align below the label
-  }
 }
 
 //Clear buffer widget

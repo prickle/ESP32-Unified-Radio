@@ -35,7 +35,7 @@ bool wrBtStarted = false;
 enum : uint8_t { WR_START, WR_SETVOLUME, WR_GETVOLUME, WR_CONNECTTOHOST, WR_CONNECTTOFS, WR_STOPSONG, 
                  WR_META, WR_CONNECTING, WR_SETTONE, WR_STATS, WR_TITLE, WR_STATION, WR_ICYURL, WR_DELETE, 
                  WR_VU, WR_EOF, WR_EMBED, WR_RESPONSE, WR_MONO, WR_SRATE, WR_SETWIDE, 
-                 WR_BTSTART, WR_BTSTOP, WR_BTMSG, WR_BTVOL, WR_BTPASS };
+                 WR_BTSTART, WR_BTSTOP, WR_BTMSG, WR_BTVOL, WR_BTPASS, WR_BTRSSI };
 
 //Webradio message
 struct audioMessage{
@@ -195,6 +195,8 @@ void connectToFS(char * path, uint32_t resumePos) {
   }
 }
 
+#ifdef BLUETOOTH
+
 void startBluetooth() {
   wrBtStarting = true;
 }
@@ -213,6 +215,14 @@ void passBluetooth(uint8_t key, uint8_t state) {
   audioTxMessage.value2 = state;
   xQueueSend(audioSetQueue, &audioTxMessage, 0);
 }
+
+void rssiBluetooth() {
+  if (!wrBtStarted || !audioSetQueue) return;
+  audioTxMessage.cmd = WR_BTRSSI;
+  xQueueSend(audioSetQueue, &audioTxMessage, 0);
+}
+
+#endif
 
 //Stop playback
 void webradioStop() {
@@ -473,16 +483,18 @@ void webradioHandle() {
       //Hardly worth the bother..
       //artFoundEmbedded(audioRxMessage.value1, audioRxMessage.value2);
     }
+#ifdef BLUETOOTH
     else if (audioRxMessage.cmd == WR_BTMSG) {
       bluetoothMessage(audioRxMessage.value1, audioRxMessage.value2, audioRxMessage.txt);
     }
     else if (audioRxMessage.cmd == WR_BTSTART) {
-      info(NAME, 0, LV_SYMBOL_BLUETOOTH " Bluetooth ready");
+      info(TEXT, 0, LV_SYMBOL_BLUETOOTH " Bluetooth ready");
       serial.println("> Bluetooth started.");
     }
     else if (audioRxMessage.cmd == WR_BTSTOP) {
       serial.println("> Bluetooth stopped.");
     }
+#endif
     else if (audioRxMessage.cmd == WR_DELETE) {
       //Webradio thread has self-destructed, tidy up on this side by deleting the queues
       delete(wrurl);
@@ -799,7 +811,9 @@ void radioTask( void * pvParameters ) {
       }
       //Play Webradio
       else if(audioRxTaskMessage.cmd == WR_CONNECTTOHOST){
+#ifdef BLUETOOTH
         cancelBTconnection();
+#endif
         audioTxTaskMessage.cmd = WR_CONNECTTOHOST;
         const char* host = audioRxTaskMessage.txt;
         audioTxTaskMessage.ret = StartNewURL(host, audioRxTaskMessage.value1);
@@ -808,7 +822,9 @@ void radioTask( void * pvParameters ) {
       }
       //Play File or FTP
       else if(audioRxTaskMessage.cmd == WR_CONNECTTOFS){
+#ifdef BLUETOOTH
         cancelBTconnection();
+#endif
         audioTxTaskMessage.cmd = WR_CONNECTTOFS;
         metaArtist = metaAlbum = metaTitle = metaYear = "";
         if (audioRxTaskMessage.txt[0] == 'D') //file on the SD card
@@ -827,7 +843,9 @@ void radioTask( void * pvParameters ) {
       }
       //Stop song
       else if(audioRxTaskMessage.cmd == WR_STOPSONG){
+#ifdef BLUETOOTH
         cancelBTconnection();
+#endif
         audioTxTaskMessage.cmd = WR_STOPSONG;
         audioTxTaskMessage.ret = audio->stopSong();
         audio->setDefaults();     //Free memory
@@ -853,6 +871,9 @@ void radioTask( void * pvParameters ) {
       }
       else if(audioRxTaskMessage.cmd == WR_BTPASS){
         BTpassthrough(audioRxTaskMessage.value1, audioRxTaskMessage.value2);
+      }                  
+      else if(audioRxTaskMessage.cmd == WR_BTRSSI){
+        BTupdateRssi();
       }                  
       else if(audioRxTaskMessage.cmd == WR_BTSTOP){
         cancelBTconnection();

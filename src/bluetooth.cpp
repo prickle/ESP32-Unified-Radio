@@ -20,6 +20,9 @@ static void forwardBtn_action(lv_event_t * event);
 bool playButtonState = false;
 int currentPlayStatus = ESP_AVRC_PLAYBACK_STOPPED;
 int currentSampleRate = 0;
+bool currentConnectionState = false;
+bool gotMetadata = false;
+const char * rName = NULL;
 
 lv_obj_t* createTransportWidget(lv_obj_t* parent) {
   transportContainer = lv_obj_create(parent);
@@ -154,14 +157,8 @@ static void forwardBtn_action(lv_event_t * event) {
   if (code == LV_EVENT_RELEASED) passBluetooth(ESP_AVRC_PT_CMD_FORWARD, ESP_AVRC_PT_CMD_STATE_RELEASED);
 }
 
-void updateStat() {
-  const char* symbol = "?";
-  if (currentPlayStatus == ESP_AVRC_PLAYBACK_PLAYING) symbol = LV_SYMBOL_PLAY;
-  else if (currentPlayStatus == ESP_AVRC_PLAYBACK_STOPPED) symbol = LV_SYMBOL_STOP;
-  else if (currentPlayStatus == ESP_AVRC_PLAYBACK_PAUSED) symbol = LV_SYMBOL_PAUSE;
-  else if (currentPlayStatus == ESP_AVRC_PLAYBACK_FWD_SEEK) symbol = LV_SYMBOL_RIGHT;
-  else if (currentPlayStatus == ESP_AVRC_PLAYBACK_REV_SEEK) symbol = LV_SYMBOL_LEFT;
-  printBufStat(symbol, "SBC", currentSampleRate * 16);
+bool isBtConnected() {
+  return currentConnectionState;
 }
 
 //Bluetooth events
@@ -172,17 +169,29 @@ void updateStat() {
 #define BT_STATE_EVENT 4
 #define BT_SR_EVENT 5
 #define BT_POS_EVENT 6
+#define BT_RSSI_EVENT 7
+#define BT_RNAME_EVENT 8
 
 //Called from audio message handler to deal with bluetooth related messages
 void bluetoothMessage(uint32_t source, uint32_t val, const char* txt) {
+  if (settings->mode != MODE_BT) return;
   if (source == BT_GAP_EVENT) {
     serial.println(txt);
   }
   else if (source == BT_CONN_EVENT) {
-    if (val) info(NAME, 0, LV_SYMBOL_BLUETOOTH " Connected");
+    currentConnectionState = val;
+    if (val) {
+      if (rName) {    
+        info(TEXT, 0, LV_SYMBOL_BLUETOOTH " Connected to %s", rName);
+      } 
+      else info(TEXT, 0, LV_SYMBOL_BLUETOOTH " Connected");
+    }
     else {
-      info(NAME, 0, LV_SYMBOL_BLUETOOTH " Disconnected");
+      info(TEXT, 0, LV_SYMBOL_BLUETOOTH " Disconnected");
+      info(NAME, 0, LV_SYMBOL_STOP " Stopped");
       info(NOW, 0, "");
+      rName = NULL;
+      gotMetadata = false;
     }
   }
   else if (source == BT_VOL_EVENT) {
@@ -194,27 +203,40 @@ void bluetoothMessage(uint32_t source, uint32_t val, const char* txt) {
     }
   }
   else if (source == BT_META_EVENT) {
+    gotMetadata = true;
     if (val == ESP_AVRC_MD_ATTR_TITLE) audio_showstreamtitle(txt);
     else if (val == ESP_AVRC_MD_ATTR_ARTIST) audio_showstation(txt);
     //serial.printf(">: %d: %s\r\n", val, txt);
   }
   else if (source == BT_STATE_EVENT) {
     currentPlayStatus = val;
-    if (val == ESP_AVRC_PLAYBACK_PLAYING) info(TEXT, 0, LV_SYMBOL_PLAY " Playing");
-    else if (val == ESP_AVRC_PLAYBACK_STOPPED) info(TEXT, 0, LV_SYMBOL_STOP " Stopped");
-    else if (val == ESP_AVRC_PLAYBACK_PAUSED) info(TEXT, 0, LV_SYMBOL_PAUSE " Paused");
-    else if (val == ESP_AVRC_PLAYBACK_FWD_SEEK) info(TEXT, 0, LV_SYMBOL_RIGHT " Forward");
-    else if (val == ESP_AVRC_PLAYBACK_REV_SEEK) info(TEXT, 0, LV_SYMBOL_LEFT " Reverse");
-    updateStat();
+    uint8_t infoLine = NAME;
+    if (gotMetadata) infoLine = TEXT;
+    if (currentPlayStatus == ESP_AVRC_PLAYBACK_PLAYING) info(infoLine, 0, LV_SYMBOL_PLAY " Playing");
+    else if (currentPlayStatus == ESP_AVRC_PLAYBACK_STOPPED) info(infoLine, 0, LV_SYMBOL_STOP " Stopped");
+    else if (currentPlayStatus == ESP_AVRC_PLAYBACK_PAUSED) info(infoLine, 0, LV_SYMBOL_PAUSE " Paused");
+    else if (currentPlayStatus == ESP_AVRC_PLAYBACK_FWD_SEEK) info(infoLine, 0, LV_SYMBOL_RIGHT " Fast Forward");
+    else if (currentPlayStatus == ESP_AVRC_PLAYBACK_REV_SEEK) info(infoLine, 0, LV_SYMBOL_LEFT, " Rewind");
     updatePlayButton();
   }
   else if (source == BT_SR_EVENT) {
     currentSampleRate = val;
     setSampleRate(currentSampleRate);
-    updateStat();
   }
   else if (source == BT_POS_EVENT) {
     //Not using this right now
+  }
+  else if (source == BT_RSSI_EVENT) {
+    if (val > 128) val = 128;
+    val = val * 100 / 128.0f;
+    char s[25] = {0};
+    snprintf(s, 24, LV_SYMBOL_WIFI " %d%%", val);
+    setSigStrengthLbl(s);    
+  }
+  else if (source == BT_RNAME_EVENT) {
+    rName = txt;
+    if (currentConnectionState)
+      info(TEXT, 0, LV_SYMBOL_BLUETOOTH " Connected to %s", rName);
   }
 }
 
@@ -232,6 +254,10 @@ bool btVolNotify = false;
 bool btPassNotify = false;
 uint8_t btVolume = 0;
 uint16_t btRemoteFeaturesFlag = 0;
+int8_t lastRSSI = 0;
+char remoteName[ESP_BT_GAP_MAX_BDNAME_LEN];
+bool rssiActive = true;
+esp_bd_addr_t peerAddress = {0};
 
 // AVRCP used transaction label
 #define APP_RC_CT_TL_GET_CAPS            (0)
@@ -257,7 +283,7 @@ void startBT() {
   esp_bluedroid_enable();
 
   // set up device name
-  const char *dev_name = "ESP_SPEAKER";
+  const char *dev_name = RADIONAME;
   esp_bt_dev_set_device_name(dev_name);
 
   // initialize AVRCP controller
@@ -331,6 +357,16 @@ void BTpassthrough(uint8_t code, uint8_t state) {
   }
 }
 
+/// Activates the rssi reporting
+void BTsetRSSIActive(bool active) { rssiActive = active; }
+
+/// Requests an update of the rssi delta value
+bool BTupdateRssi() {
+  if (rssiActive) esp_bt_gap_read_rssi_delta(peerAddress);
+  return rssiActive;
+}
+
+
 //--------------------------------------------------------
 // Callbacks
 
@@ -359,6 +395,22 @@ void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param) {
     case ESP_BT_GAP_KEY_REQ_EVT:
       Serial.printf("ESP_BT_GAP_KEY_REQ_EVT Please enter passkey!\r\n");
       break;
+#endif
+    case ESP_BT_GAP_READ_RSSI_DELTA_EVT: {
+      if (param->read_rssi_delta.stat == ESP_BT_STATUS_SUCCESS) {
+        lastRSSI = param->read_rssi_delta.rssi_delta;
+        btNotify(BT_RSSI_EVENT, lastRSSI + 128, "");
+      }
+      break;
+    }
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 0, 0)
+    case ESP_BT_GAP_READ_REMOTE_NAME_EVT: {
+      if (param->read_rmt_name.stat == ESP_BT_STATUS_SUCCESS) {
+        Serial.printf("ESP_BT_GAP_READ_REMOTE_NAME_EVT remote name:%s\r\n", param->read_rmt_name.rmt_name);
+        memcpy(remoteName, param->read_rmt_name.rmt_name, ESP_BT_GAP_MAX_BDNAME_LEN);
+        btNotify(BT_RNAME_EVENT, 0, remoteName);
+      }
+    } break;
 #endif
     case ESP_BT_GAP_MODE_CHG_EVT:
       break;
@@ -514,12 +566,23 @@ void bt_a2d_cb(esp_a2d_cb_event_t event, esp_a2d_cb_param_t *param)
 {
   switch (event) {
   case ESP_A2D_CONNECTION_STATE_EVT: {
+    memcpy(peerAddress, param->conn_stat.remote_bda, ESP_BD_ADDR_LEN);
     if (param->conn_stat.state == ESP_A2D_CONNECTION_STATE_DISCONNECTED) {
       esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
     } else if (param->conn_stat.state == ESP_A2D_CONNECTION_STATE_CONNECTED){
       esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
     }
     btNotify(BT_CONN_EVENT, param->conn_stat.state, "");
+    if (param->conn_stat.state) {
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 0, 0)
+      // ask for the remote name
+      esp_bt_gap_read_remote_name(param->conn_stat.remote_bda);
+#endif
+      // Get RSSI
+      if (rssiActive) {
+        esp_bt_gap_read_rssi_delta(param->conn_stat.remote_bda);
+      }
+    }
     break;
   }
   case ESP_A2D_AUDIO_STATE_EVT: {

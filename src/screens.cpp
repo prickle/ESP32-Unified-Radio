@@ -636,7 +636,9 @@ void setRadioMode(int mode) {
   sdSongFinished();
   closePopup(true);
   hideWebControls();
+#ifdef BLUETOOTH
   stopBluetooth();
+#endif
 #ifdef MONKEYBOARD
   dabStop();
 #endif
@@ -656,9 +658,6 @@ void setRadioMode(int mode) {
   if (settings->mode != MODE_WEB && settings->mode != MODE_FTP && settings->mode != MODE_POD && settings->mode != MODE_DLNA) 
     wifiDisconnect();
 #endif
-#ifdef BLUETOOTH
-  if (isWebradioAllocated()) webradioStop();
-#endif    
   //Set up new mode
   if (settings->mode == MODE_FTP) {
     prepareI2S(); 
@@ -726,6 +725,7 @@ void setRadioMode(int mode) {
   }
 #ifdef BLUETOOTH  
   else if (settings->mode == MODE_BT) {
+    showFullInfo();
     prepareI2S(); 
     startBluetooth();
   }

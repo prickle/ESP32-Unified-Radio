@@ -499,6 +499,7 @@ void startBluetooth();
 void stopBluetooth();
 void btNotify(uint32_t source, uint32_t val, const char* msg);
 void passBluetooth(uint8_t key, uint8_t state);
+void rssiBluetooth();
 void audio_showstation(const char *info);
 void audio_showstreamtitle(const char *info);
 #endif
@@ -535,8 +536,11 @@ void bluetoothMessage(uint32_t source, uint32_t val, const char* txt);
 void startBT();
 void handleBT();
 void stopBT();
+bool isBtConnected();
 void BTvolchange(uint32_t vol);
 void BTpassthrough(uint8_t code, uint8_t state);
+void BTsetRSSIActive(bool active);
+bool BTupdateRssi();
 #endif
 
 //buttons.cpp
@@ -610,6 +614,7 @@ void updateArtImg(const char * msg);
 void setArtBar(int pct);
 void VUHandle();
 void showLoadSpinner();
+void showFullInfo();
 #ifdef SDPLAYER
 void showReloadBtn();
 #endif
@@ -623,7 +628,6 @@ void setBufMeter(int val);
 void setTimeBar(int pct);
 void clearProgLbl();
 void printBufStat(bool wrIsRunning, int wrCodec, int wrBitrate);
-void printBufStat(const char* symbol, const char* codec, int bitrate);
 void setupInfoLabels();
 void info(uint8_t field, int time, const char * format, ...);
 void infoLabelHandle();
