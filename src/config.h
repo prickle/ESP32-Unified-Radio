@@ -373,7 +373,9 @@ struct __attribute__ ((packed)) settingsObject{
   bool wide;
   bool weather;
   bool reconnectBt;
+  bool pinreqBt;
   uint8_t hostAddrBt[6];
+  uint8_t pincodeBt[4];
 };
 //Pointer to settings object
 extern settingsObject* settings;

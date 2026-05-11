@@ -77,7 +77,9 @@ void setDefaults() {
     false,      //Stereo Wide
     true,       //Weather client enabled
     false,      //Auto reconnect Bluetooth
-    {0, 0, 0, 0, 0, 0}  //Host Address Bluetooth
+    false,      //Pin required Bluetooth
+    {0, 0, 0, 0, 0, 0},  //Host Address Bluetooth
+    {1, 2, 3, 4}//Pin Code Bluetooth
   }; 
   memcpy(settings, &defaults, sizeof(settingsObject));
 }
@@ -109,8 +111,11 @@ void initSettings() {
   //writeSettings();
   //Force new bluetooth settings
   //settings->reconnectBt = true;
+  //settings->pinreqBt = false;
   //esp_bd_addr_t addr = {};
   //memcpy(settings->hostAddrBt, addr, ESP_BD_ADDR_LEN);
+  //uint8_t pin[4] = {1, 2, 3, 4};
+  //memcpy(settings->pincodeBt, pin, 4);
   //writeSettings();
 }
 
@@ -231,6 +236,10 @@ void wifiScanAction(lv_event_t * event);
 void passwordEditAction(lv_event_t * event);
 void keyboardPasswordKeyAction(lv_event_t * event);
 void wifiDisconnectAction(lv_event_t * event);
+void autoBtAction(lv_event_t * event);
+void pinBtAction(lv_event_t * event);
+void btSetEditText();
+void pinBtTextAction(lv_event_t * event);
 void ftpSetEditText();
 void ftpServerAction(lv_event_t * event);
 void ftpUserAction(lv_event_t * event);
@@ -264,6 +273,7 @@ lv_obj_t * mainContainer;
 static lv_obj_t * wifiContainer;
 static lv_obj_t * ftpContainer;
 static lv_obj_t * dabContainer;
+static lv_obj_t * btContainer;
 static lv_obj_t * timeContainer;
 static lv_obj_t * weatherContainer;
 static lv_obj_t * podcastContainer;
@@ -295,6 +305,9 @@ static lv_obj_t * ftpUserText;
 static lv_obj_t * ftpPassText;
 static lv_obj_t * saveSwitch;
 static lv_obj_t * monoSwitch;
+static lv_obj_t * autoBtSwitch;
+static lv_obj_t * pinBtSwitch;
+static lv_obj_t * pinBtText;
 static lv_obj_t * brightSlider;
 static lv_obj_t * webToneSlider1;
 static lv_obj_t * webToneSlider2;
@@ -561,6 +574,49 @@ void createSettingsWindow(lv_obj_t * page) {
     lv_obj_align_to(wifiDisconnectBtn, wifiNetworkList, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 10);         //Align next to the slider
     setPasswordVisibility(false, false);
 
+    // -- Bluetooth controls
+    btContainer = lv_obj_create(page);
+    lv_obj_set_size(btContainer, width, 86);
+    lv_obj_add_style(btContainer, &style_groupbox, LV_PART_MAIN);
+    lv_obj_clear_flag(btContainer, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_align_to(btContainer, wifiContainer, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);         //Align next to the slider
+    lv_obj_set_hidden(btContainer, true);
+
+    btn_label = lv_label_create(btContainer);
+    lv_obj_set_pos(btn_label, 10, 10);                //Align below the first button
+    lv_label_set_text(btn_label, "Bluetooth Auto-reconnect");
+
+    autoBtSwitch = lv_switch_create(btContainer);
+    lv_obj_set_size(autoBtSwitch, 44, 20);
+    if (settings->reconnectBt) lv_obj_add_state(autoBtSwitch, LV_STATE_CHECKED);
+    else lv_obj_clear_state(autoBtSwitch, LV_STATE_CHECKED);
+    lv_obj_align_to(autoBtSwitch, btn_label, LV_ALIGN_OUT_RIGHT_MID, 20, 0);         //Align next to the slider
+    lv_obj_add_event_cb(autoBtSwitch, autoBtAction, LV_EVENT_VALUE_CHANGED, NULL); 
+ 
+    btn_label = lv_label_create(btContainer);
+    lv_obj_set_pos(btn_label, 10, 42);                //Align below the first button
+    lv_label_set_text(btn_label, "Bluetooth Pin Code");
+
+    pinBtSwitch = lv_switch_create(btContainer);
+    lv_obj_set_size(pinBtSwitch, 44, 20);
+    if (settings->pinreqBt) lv_obj_add_state(pinBtSwitch, LV_STATE_CHECKED);
+    else lv_obj_clear_state(pinBtSwitch, LV_STATE_CHECKED);
+    lv_obj_align_to(pinBtSwitch, btn_label, LV_ALIGN_OUT_RIGHT_MID, 20, 0);         //Align next to the slider
+    lv_obj_add_event_cb(pinBtSwitch, pinBtAction, LV_EVENT_VALUE_CHANGED, NULL); 
+ 
+    pinBtText = lv_textarea_create(btContainer);
+    lv_obj_set_size(pinBtText, width - 250, 20);
+    lv_obj_align_to(pinBtText, pinBtSwitch, LV_ALIGN_OUT_RIGHT_MID, 16, 0);         //Align next to the slider
+    lv_obj_add_style(pinBtText, &style_ta, LV_PART_MAIN);
+    lv_textarea_set_text_selection(pinBtText, false);
+    lv_textarea_set_one_line(pinBtText, true);
+    lv_obj_add_event_cb(pinBtText, pinBtTextAction, LV_EVENT_PRESSED, NULL);
+    if (settings->pinreqBt) lv_obj_clear_state(pinBtText, LV_STATE_DISABLED);
+    else lv_obj_add_state(pinBtText, LV_STATE_DISABLED);
+
+    btSetEditText();
+
+
     // -- FTP controls
     ftpContainer = lv_obj_create(page);
     lv_obj_set_size(ftpContainer, width, 116);
@@ -802,6 +858,12 @@ void setSettingsVisibility() {
   lv_obj_set_hidden(dabContainer, !showDab);
   lv_obj_align_to(dabContainer, above, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);         //Align next to the slider
   above = showDab?dabContainer:above;
+#endif
+#ifdef BLUETOOTH
+  bool showBt = (settings->mode == MODE_BT);
+  lv_obj_set_hidden(btContainer, !showBt);
+  lv_obj_align_to(btContainer, above, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);         //Align next to the slider
+  above = showBt?btContainer:above;
 #endif
   bool showFtp = (settings->mode == MODE_FTP);
   lv_obj_set_hidden(ftpContainer, !showFtp);
@@ -1063,6 +1125,64 @@ void keyboardPasswordKeyAction(lv_event_t * event) {
 
 void wifiScanComplete() {
   serial.println("WIFI AP Scan Finished.");
+}
+
+//-----------------------------------------------------------------------
+// Bluetooth Container actions
+
+void restartBluetooth() {
+  stopBluetooth();
+  startBluetooth();
+}
+
+void btSetEditText() {
+  char buf[20];
+  uint8_t *pin = settings->pincodeBt;
+  snprintf(buf, 19, "%d%d%d%d", pin[0], pin[1], pin[2], pin[3]);
+  lv_textarea_set_text(pinBtText, buf);  
+}
+
+void autoBtAction(lv_event_t * event) {
+  settings->reconnectBt = lv_obj_has_state(autoBtSwitch, LV_STATE_CHECKED);
+  writeSettings();
+}
+
+void pinBtAction(lv_event_t * event) {
+  settings->pinreqBt = lv_obj_has_state(pinBtSwitch, LV_STATE_CHECKED);
+  writeSettings();
+  if (settings->pinreqBt) lv_obj_clear_state(pinBtText, LV_STATE_DISABLED);
+  else lv_obj_add_state(pinBtText, LV_STATE_DISABLED);
+  restartBluetooth();
+}
+
+void keyboardPinBtKeyAction(lv_event_t * event) {
+  uint32_t res = lv_event_get_code(event);
+  if(res == LV_EVENT_READY || res == LV_EVENT_CANCEL){
+    if (keyBoard) keyboardHide(true, NULL);
+    if(res == LV_EVENT_READY) {
+      uint8_t pin[4] = {};
+      int32_t pinint = atoi(lv_textarea_get_text(ftpServerText));
+      if (pinint >= 0 && pinint <= 9999) {
+        for (int i = 3; i >= 0; i--) {
+          pin[i] = pinint % 10; 
+          pinint /= 10;
+        }
+        memcpy(settings->pincodeBt, pin, 4);
+        writeSettings();
+        btSetEditText();
+        restartBluetooth();
+      } else btSetEditText();
+    }
+    else if (res == LV_EVENT_CANCEL){
+      btSetEditText();
+    }
+  }
+}
+
+void pinBtTextAction(lv_event_t * event) {
+  if (!keyboardShowing()) {
+    keyboardShow(lv_scr_act(), pinBtText, keyboardPinBtKeyAction);
+  }
 }
 
 //-----------------------------------------------------------------------
