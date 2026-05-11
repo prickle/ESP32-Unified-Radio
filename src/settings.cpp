@@ -75,7 +75,9 @@ void setDefaults() {
     0,          //agcSW
     TZ,         //timezone
     false,      //Stereo Wide
-    true        //Weather client enabled
+    true,       //Weather client enabled
+    false,      //Auto reconnect Bluetooth
+    {0, 0, 0, 0, 0, 0}  //Host Address Bluetooth
   }; 
   memcpy(settings, &defaults, sizeof(settingsObject));
 }
@@ -104,6 +106,11 @@ void initSettings() {
   readSettings();
   //Force new Timezone setting
   //strncpy(settings->tz, TZ, 63);
+  //writeSettings();
+  //Force new bluetooth settings
+  //settings->reconnectBt = true;
+  //esp_bd_addr_t addr = {};
+  //memcpy(settings->hostAddrBt, addr, ESP_BD_ADDR_LEN);
   //writeSettings();
 }
 

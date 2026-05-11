@@ -23,6 +23,7 @@ int currentSampleRate = 0;
 bool currentConnectionState = false;
 bool gotMetadata = false;
 const char * rName = NULL;
+//bool autoConnectAllowed = false;
 
 lv_obj_t* createTransportWidget(lv_obj_t* parent) {
   transportContainer = lv_obj_create(parent);
@@ -162,7 +163,7 @@ bool isBtConnected() {
 }
 
 //Bluetooth events
-#define BT_GAP_EVENT 0
+#define BT_TXT_EVENT 0
 #define BT_CONN_EVENT 1
 #define BT_VOL_EVENT 2
 #define BT_META_EVENT 3
@@ -175,18 +176,21 @@ bool isBtConnected() {
 //Called from audio message handler to deal with bluetooth related messages
 void bluetoothMessage(uint32_t source, uint32_t val, const char* txt) {
   if (settings->mode != MODE_BT) return;
-  if (source == BT_GAP_EVENT) {
-    serial.println(txt);
+  if (source == BT_TXT_EVENT) {
+    info(TEXT, 0, LV_SYMBOL_BLUETOOTH " %s", txt);
   }
   else if (source == BT_CONN_EVENT) {
     currentConnectionState = val;
-    if (val) {
+    if (val == ESP_A2D_CONNECTION_STATE_CONNECTING) {
+      info(TEXT, 0, LV_SYMBOL_BLUETOOTH " Connecting..");
+    }
+    else if (val == ESP_A2D_CONNECTION_STATE_CONNECTED) {
       if (rName) {    
         info(TEXT, 0, LV_SYMBOL_BLUETOOTH " Connected to %s", rName);
       } 
       else info(TEXT, 0, LV_SYMBOL_BLUETOOTH " Connected");
     }
-    else {
+    else if (val == ESP_A2D_CONNECTION_STATE_DISCONNECTED) {
       info(TEXT, 0, LV_SYMBOL_BLUETOOTH " Disconnected");
       info(NAME, 0, LV_SYMBOL_STOP " Stopped");
       info(NOW, 0, "");
@@ -240,6 +244,27 @@ void bluetoothMessage(uint32_t source, uint32_t val, const char* txt) {
   }
 }
 
+//--------------------------------------------------------
+//Address handling
+esp_bd_addr_t peerAddress = {0};
+
+bool readPeerAddress() {
+  esp_bd_addr_t empty_connection = {0, 0, 0, 0, 0, 0};
+  memcpy(peerAddress, settings->hostAddrBt, ESP_BD_ADDR_LEN);
+  int result = memcmp(peerAddress, empty_connection, ESP_BD_ADDR_LEN);
+  return result != 0;
+}
+
+void writePeerAddress(esp_bd_addr_t address) {
+  memcpy(settings->hostAddrBt, address, ESP_BD_ADDR_LEN);
+  writeSettings();
+}
+
+void clearPeerAddress() {
+  esp_bd_addr_t cleanBda = {0};
+  writePeerAddress(cleanBda);
+}
+
 //-------------------------------------------------------
 // Threaded below - called from audio thread
 
@@ -252,12 +277,16 @@ void bt_a2d_cb(esp_a2d_cb_event_t event, esp_a2d_cb_param_t *param);
 bool btConnected = false;
 bool btVolNotify = false;
 bool btPassNotify = false;
+bool btAutoConnect = false;
+uint8_t btAutoRetry = 0;
+unsigned long btAutoTimeout = 0;
 uint8_t btVolume = 0;
 uint16_t btRemoteFeaturesFlag = 0;
 int8_t lastRSSI = 0;
 char remoteName[ESP_BT_GAP_MAX_BDNAME_LEN];
 bool rssiActive = true;
-esp_bd_addr_t peerAddress = {0};
+
+#define BT_AUTOTIMER 2000
 
 // AVRCP used transaction label
 #define APP_RC_CT_TL_GET_CAPS            (0)
@@ -270,66 +299,110 @@ esp_bd_addr_t peerAddress = {0};
 
 static esp_avrc_rn_evt_cap_mask_t s_avrc_peer_rn_cap;
 
-
 //Start the Bluetooth stack - called from the audio thread
-void startBT() {
+bool startBT() {
+  bool fail = false;
   // set up bluetooth classic via bluedroid
-  esp_bt_controller_mem_release(ESP_BT_MODE_BLE);
+  esp_err_t err = esp_bt_controller_mem_release(ESP_BT_MODE_BLE);
+  if (err != ESP_OK) { fail = true; log_e("esp_bt_controller_mem_release:%d", err); }
   setSampleRate(44100);
   setBitsPerSample(16);
   setChannels(2);
-  btStart();
-  esp_bluedroid_init();
-  esp_bluedroid_enable();
+  if (!btStart()) { fail = true; log_e("btStart"); }
+  err = esp_bluedroid_init();
+  if (err != ESP_OK) { fail = true; log_e("esp_bluedroid_init:%d", err); }
+  err = esp_bluedroid_enable();
+  if (err != ESP_OK) { fail = true; log_e("esp_bluedroid_enable:%d", err); }
 
   // set up device name
   const char *dev_name = RADIONAME;
-  esp_bt_dev_set_device_name(dev_name);
+  err = esp_bt_dev_set_device_name(dev_name);
+  if (err != ESP_OK) { fail = true; log_e("esp_bt_dev_set_device_name:%d", err); }
 
   // initialize AVRCP controller
-  esp_avrc_ct_init();
-  esp_avrc_ct_register_callback(bt_rc_ct_cb);
-  esp_avrc_tg_init();
-  esp_avrc_tg_register_callback(bt_rc_tg_cb);
+  err = esp_avrc_ct_init();
+  if (err != ESP_OK) { fail = true; log_e("esp_avrc_ct_init:%d", err); }
+  err = esp_avrc_ct_register_callback(bt_rc_ct_cb);
+  if (err != ESP_OK) { fail = true; log_e("esp_avrc_ct_register_callback:%d", err); }
+  err = esp_avrc_tg_init();
+  if (err != ESP_OK) { fail = true; log_e("esp_avrc_tg_init:%d", err); }
+  err = esp_avrc_tg_register_callback(bt_rc_tg_cb);
+  if (err != ESP_OK) { fail = true; log_e("esp_avrc_tg_register_callback:%d", err); }
 
   esp_avrc_rn_evt_cap_mask_t evt_set = {0};
   esp_avrc_rn_evt_bit_mask_operation(ESP_AVRC_BIT_MASK_OP_SET, &evt_set, ESP_AVRC_RN_VOLUME_CHANGE);
   assert(esp_avrc_tg_set_rn_evt_cap(&evt_set) == ESP_OK);
 
   // initialize A2DP sink and set the data callback(A2DP is bluetooth audio)
-  esp_a2d_register_callback(bt_a2d_cb);
-  esp_a2d_sink_register_data_callback(bt_data_cb);
-  esp_a2d_sink_init();
+  err = esp_a2d_register_callback(bt_a2d_cb);
+  if (err != ESP_OK) { fail = true; log_e("esp_a2d_register_callback:%d", err); }
+  err = esp_a2d_sink_register_data_callback(bt_data_cb);
+  if (err != ESP_OK) { fail = true; log_e("esp_a2d_sink_register_data_callback:%d", err); }
+  err = esp_a2d_sink_init();
+  if (err != ESP_OK) { fail = true; log_e("esp_a2d_sink_init:%d", err); }
   
   // set discoverable and connectable mode, wait to be connected
-  esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE); // for newer ESP-IDF
-  esp_bt_gap_register_callback(bt_gap_cb);
+  err = esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE); // for newer ESP-IDF
+  if (err != ESP_OK) { fail = true; log_e("esp_bt_gap_set_scan_mode:%d", err); }
+  err = esp_bt_gap_register_callback(bt_gap_cb);
+  if (err != ESP_OK) { fail = true; log_e("esp_bt_gap_register_callback:%d", err); }
 
 #if (CONFIG_BT_SSP_ENABLED == true)
   /* Set default parameters for Secure Simple Pairing */
   esp_bt_sp_param_t param_type = ESP_BT_SP_IOCAP_MODE;
   esp_bt_io_cap_t iocap = ESP_BT_IO_CAP_IO;
-  esp_bt_gap_set_security_param(param_type, &iocap, sizeof(uint8_t));
+  err = esp_bt_gap_set_security_param(param_type, &iocap, sizeof(uint8_t));
+  if (err != ESP_OK) { fail = true; log_e("esp_bt_gap_set_security_param:%d", err); }
 #endif
 
-  /*
-   * Set default parameters for Legacy Pairing
-   * Use fixed pin code
-  */
+  
+  // Set default parameters for Legacy Pairing
+  // Use fixed pin code
   esp_bt_pin_type_t pin_type = ESP_BT_PIN_TYPE_FIXED;
   esp_bt_pin_code_t pin_code;
 	pin_code[0] = '1';
   pin_code[1] = '2';
   pin_code[2] = '3';
   pin_code[3] = '4';
-  esp_bt_gap_set_pin(pin_type, 4, pin_code); 
+  err = esp_bt_gap_set_pin(pin_type, 4, pin_code); 
+  if (err != ESP_OK) { fail = true; log_e("esp_bt_gap_set_pin:%d", err); }
+
+  //Reconnect to last peer
+  btAutoConnect = settings->reconnectBt;
+  if (!fail && btAutoConnect && (btAutoConnect = readPeerAddress())) {
+    btNotify(BT_TXT_EVENT, 0, "Reconnecting to last peer..");
+    BTconnect(peerAddress);
+    btAutoTimeout = millis() + BT_AUTOTIMER;
+  } else {
+    if (fail) btNotify(BT_TXT_EVENT, 0, "Bluetooth failed!");
+    else btNotify(BT_TXT_EVENT, 0, "Bluetooth ready");
+    btAutoTimeout = 0;
+  }
+  btAutoRetry = 0;
+  return (!fail);
 }
 
 void handleBT() {
+  if (settings->mode == MODE_BT && btAutoConnect) {
+    if (btAutoTimeout && btAutoTimeout < millis()) {
+      if (btAutoRetry < 4) {
+        char buf[32];
+        sprintf(buf, "Searching for peer, attempt %d..", btAutoRetry);
+        btNotify(BT_TXT_EVENT, 0, buf);
+        BTconnect(peerAddress);
+        btAutoRetry++;
+        btAutoTimeout = millis() + BT_AUTOTIMER;
+      } else {
+        btNotify(BT_TXT_EVENT, 0, "Last peer not found.");
+        btAutoTimeout = 0;
+      }
+    }
+  }
 }
 
 //Shut down BT controller - called from audio thread
 void stopBT() {
+  esp_a2d_sink_deinit();
   esp_bluedroid_disable();
   esp_bluedroid_deinit();
   esp_bt_controller_disable();
@@ -366,6 +439,22 @@ bool BTupdateRssi() {
   return rssiActive;
 }
 
+bool BTconnect(esp_bd_addr_t peer) {
+  esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
+  esp_err_t err = esp_a2d_sink_connect(peer);
+  if (err != ESP_OK) {
+    log_e("esp_a2d_sink_connect:%d", err);
+  }
+  return err == ESP_OK;
+}
+
+bool BTdisconnect(esp_bd_addr_t peer) {
+  esp_err_t status = esp_a2d_sink_disconnect(peer);
+  if (status == ESP_FAIL) {
+    log_e("esp_a2d_sink_disconnect:%d", status);
+  }
+  return status == ESP_OK;
+}
 
 //--------------------------------------------------------
 // Callbacks
@@ -377,10 +466,10 @@ void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param) {
     case ESP_BT_GAP_AUTH_CMPL_EVT: {
       if (param->auth_cmpl.stat == ESP_BT_STATUS_SUCCESS) {
         sprintf(buff, "GAP Authentication success: %s\r\n", param->auth_cmpl.device_name);
-        btNotify(BT_GAP_EVENT, event, buff);
+        btNotify(BT_TXT_EVENT, event, buff);
       } else {
         sprintf(buff, "GAP Authentication failed, status:%d\r\n", param->auth_cmpl.stat);
-        btNotify(BT_GAP_EVENT, event, buff);
+        btNotify(BT_TXT_EVENT, event, buff);
       }
       break;
     }
@@ -478,7 +567,7 @@ void bt_rc_ct_cb(esp_avrc_ct_cb_event_t event, esp_avrc_ct_cb_param_t *param) {
       //Serial.printf("AVRC remote features %x\r\n", param->rmt_feats.feat_mask);
       btRemoteFeaturesFlag = param->rmt_feats.tg_feat_flag;
       if ((param->rmt_feats.tg_feat_flag & ESP_AVRC_FEAT_FLAG_TG_COVER_ART)) {
-        Serial.println("> BT: Peer support Cover Art feature");
+        serial.println("> BT: Peer support Cover Art feature");
         // start the cover art connection
       }      
       break;
@@ -566,23 +655,28 @@ void bt_a2d_cb(esp_a2d_cb_event_t event, esp_a2d_cb_param_t *param)
 {
   switch (event) {
   case ESP_A2D_CONNECTION_STATE_EVT: {
-    memcpy(peerAddress, param->conn_stat.remote_bda, ESP_BD_ADDR_LEN);
-    if (param->conn_stat.state == ESP_A2D_CONNECTION_STATE_DISCONNECTED) {
-      esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
-    } else if (param->conn_stat.state == ESP_A2D_CONNECTION_STATE_CONNECTED){
-      esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
+    if (btAutoConnect && param->conn_stat.state != ESP_A2D_CONNECTION_STATE_CONNECTING){
+      btAutoTimeout = 0;
+      btAutoRetry = 0;
     }
-    btNotify(BT_CONN_EVENT, param->conn_stat.state, "");
-    if (param->conn_stat.state) {
+    if (param->conn_stat.state == ESP_A2D_CONNECTION_STATE_CONNECTED){
+      memcpy(peerAddress, param->conn_stat.remote_bda, ESP_BD_ADDR_LEN);
+      writePeerAddress(peerAddress);
+      esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 0, 0)
       // ask for the remote name
       esp_bt_gap_read_remote_name(param->conn_stat.remote_bda);
 #endif
       // Get RSSI
-      if (rssiActive) {
-        esp_bt_gap_read_rssi_delta(param->conn_stat.remote_bda);
-      }
+      if (rssiActive) esp_bt_gap_read_rssi_delta(param->conn_stat.remote_bda);
     }
+    else if (param->conn_stat.state == ESP_A2D_CONNECTION_STATE_DISCONNECTED) {
+      esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
+      if (param->conn_stat.disc_rsn != ESP_A2D_DISC_RSN_NORMAL) {
+        btAutoTimeout = millis() + BT_AUTOTIMER;
+      }    
+    }
+    btNotify(BT_CONN_EVENT, param->conn_stat.state, "");
     break;
   }
   case ESP_A2D_AUDIO_STATE_EVT: {

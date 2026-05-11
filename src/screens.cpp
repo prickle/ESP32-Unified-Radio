@@ -656,7 +656,7 @@ void setRadioMode(int mode) {
   setObjectVisibility();
 #ifndef USE_OTA
   if (settings->mode != MODE_WEB && settings->mode != MODE_FTP && settings->mode != MODE_POD && settings->mode != MODE_DLNA) 
-    wifiDisconnect();
+  wifiDisconnect();
 #endif
   //Set up new mode
   if (settings->mode == MODE_FTP) {

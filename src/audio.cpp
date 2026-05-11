@@ -198,6 +198,7 @@ void connectToFS(char * path, uint32_t resumePos) {
 #ifdef BLUETOOTH
 
 void startBluetooth() {
+  info(TEXT, 0, LV_SYMBOL_BLUETOOTH " Starting Bluetooth..");
   wrBtStarting = true;
 }
 
@@ -488,8 +489,8 @@ void webradioHandle() {
       bluetoothMessage(audioRxMessage.value1, audioRxMessage.value2, audioRxMessage.txt);
     }
     else if (audioRxMessage.cmd == WR_BTSTART) {
-      info(TEXT, 0, LV_SYMBOL_BLUETOOTH " Bluetooth ready");
-      serial.println("> Bluetooth started.");
+      if (audioRxMessage.ret) serial.println("> Bluetooth started.");
+      else serial.println("> Bluetooth failed to start.");
     }
     else if (audioRxMessage.cmd == WR_BTSTOP) {
       serial.println("> Bluetooth stopped.");
@@ -581,8 +582,8 @@ void updateVSTone(uint16_t val) {
 void audio_info(const char *info){
   struct audioMessage audioTxTaskMessage;
   if (settings->logLevel == ARDUHAL_LOG_LEVEL_DEBUG) {
-    serial.print("* "); 
-    serial.println(info);
+    //serial.print("* "); 
+    //serial.println(info);
   }
   //Look for new server connections including redirects
   // also clear serverResponse on new connection
@@ -860,8 +861,8 @@ void radioTask( void * pvParameters ) {
       else if(audioRxTaskMessage.cmd == WR_BTSTART){
         if (!bttRunning) {
           audio->stopSong();
-          startBT();
           audioTxTaskMessage.cmd = WR_BTSTART;
+          audioTxTaskMessage.ret = startBT();
           xQueueSend(audioGetQueue, &audioTxTaskMessage, portMAX_DELAY);
           bttRunning = true;
         }
@@ -914,5 +915,9 @@ void radioTask( void * pvParameters ) {
     }     
     //Audio handling loop
     audio->loop();
+#ifdef BLUETOOTH
+    //Bluetooth handling loop
+    handleBT();
+#endif
   }
 }  

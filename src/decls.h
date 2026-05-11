@@ -533,7 +533,7 @@ void browserListMenu(lv_event_t * event);
 //bluetooth.cpp
 lv_obj_t* createTransportWidget(lv_obj_t* parent);
 void bluetoothMessage(uint32_t source, uint32_t val, const char* txt);
-void startBT();
+bool startBT();
 void handleBT();
 void stopBT();
 bool isBtConnected();
@@ -541,6 +541,8 @@ void BTvolchange(uint32_t vol);
 void BTpassthrough(uint8_t code, uint8_t state);
 void BTsetRSSIActive(bool active);
 bool BTupdateRssi();
+bool BTconnect(esp_bd_addr_t peer);
+bool BTdisconnect(esp_bd_addr_t peer);
 #endif
 
 //buttons.cpp

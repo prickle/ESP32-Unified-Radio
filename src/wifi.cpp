@@ -230,7 +230,7 @@ void wifiHandle() {
     if (millis() > lastms) {
       lastms = millis() + 1000;
       if (isBtConnected()) rssiBluetooth();
-      else setSigStrengthLbl(LV_SYMBOL_WIFI " X");           
+      else setSigStrengthLbl(LV_SYMBOL_WIFI " ?");           
     }
   }
 #endif

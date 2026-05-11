@@ -3421,7 +3421,10 @@ void Audio::processAudioHeaderData() {
 
     while(true){
         b = _client->read();
-        if(b == '\n') break;
+        if(b == '\n') {
+            hl[pos] = 0;
+            break;
+        }
         if(b == '\r') hl[pos] = 0;
         if(b < 0x20) continue;
         hl[pos] = b;
