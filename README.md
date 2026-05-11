@@ -53,7 +53,7 @@ Note that the included libraries have been modified for this project. All code r
 **Bluetooth Speaker**
 - Only on ESP32 (not S3)
 - Bluetooth audio receiver
-- Remote volume control
+- Remote volume and transport controls
 - Metadata support
 
 **Presets**
