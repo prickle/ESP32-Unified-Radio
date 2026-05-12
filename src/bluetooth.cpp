@@ -298,18 +298,25 @@ bool rssiActive = true;
 
 
 static esp_avrc_rn_evt_cap_mask_t s_avrc_peer_rn_cap;
-
-//Start the Bluetooth stack - called from the audio thread
-bool startBT() {
+//Prepare for Bluetooth - started by audio thread
+bool initBT() {
   bool fail = false;
   // set up bluetooth classic via bluedroid
   esp_err_t err = esp_bt_controller_mem_release(ESP_BT_MODE_BLE);
   if (err != ESP_OK) { fail = true; log_e("esp_bt_controller_mem_release:%d", err); }
+  return (!fail);
+}
+
+//Start the Bluetooth stack - called from the audio thread
+bool startBT() {
+  bool fail = false;
+  //Prepare audio output
   setSampleRate(44100);
   setBitsPerSample(16);
   setChannels(2);
+  // start bluetooth classic via bluedroid
   if (!btStart()) { fail = true; log_e("btStart"); }
-  err = esp_bluedroid_init();
+  esp_err_t err = esp_bluedroid_init();
   if (err != ESP_OK) { fail = true; log_e("esp_bluedroid_init:%d", err); }
   err = esp_bluedroid_enable();
   if (err != ESP_OK) { fail = true; log_e("esp_bluedroid_enable:%d", err); }
@@ -479,24 +486,32 @@ void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param) {
   switch (event) {
     case ESP_BT_GAP_AUTH_CMPL_EVT: {
       if (param->auth_cmpl.stat == ESP_BT_STATUS_SUCCESS) {
-        sprintf(buff, "GAP Authentication success: %s\r\n", param->auth_cmpl.device_name);
+        sprintf(buff, "Authentication success: %s\r\n", param->auth_cmpl.device_name);
         btNotify(BT_TXT_EVENT, event, buff);
       } else {
-        sprintf(buff, "GAP Authentication failed, status:%d\r\n", param->auth_cmpl.stat);
+        sprintf(buff, "Authentication failed, status:%d\r\n", param->auth_cmpl.stat);
         btNotify(BT_TXT_EVENT, event, buff);
       }
       break;
     }
+    case ESP_BT_GAP_PIN_REQ_EVT: 
+#if (CONFIG_BT_SSP_ENABLED == true)
+    case ESP_BT_GAP_KEY_NOTIF_EVT:
+#endif
+    {
+      log_i("ESP_BT_GAP_KEY_NOTIF_EVT passkey:%d", param->key_notif.passkey);
+      if (esp_bt_gap_ssp_passkey_reply(param->cfm_req.bda, true, param->key_notif.passkey) != ESP_OK)
+        log_e("esp_bt_gap_ssp_passkey_reply");
+      } break;
 #if (CONFIG_BT_SSP_ENABLED == true)
     case ESP_BT_GAP_CFM_REQ_EVT:
-      Serial.printf("ESP_BT_GAP_CFM_REQ_EVT Please compare the numeric value: %d\r\n", param->cfm_req.num_val);
-      esp_bt_gap_ssp_confirm_reply(param->cfm_req.bda, true);
-      break;
-    case ESP_BT_GAP_KEY_NOTIF_EVT:
-      Serial.printf("ESP_BT_GAP_KEY_NOTIF_EVT passkey:%d\r\n", param->key_notif.passkey);
+      log_i("ESP_BT_GAP_CFM_REQ_EVT Please compare the numeric value: %d", param->cfm_req.num_val);
+      if (esp_bt_gap_ssp_confirm_reply(param->cfm_req.bda, true) != ESP_OK) {
+        log_e("esp_bt_gap_ssp_passkey_reply");
+      }
       break;
     case ESP_BT_GAP_KEY_REQ_EVT:
-      Serial.printf("ESP_BT_GAP_KEY_REQ_EVT Please enter passkey!\r\n");
+      log_i("ESP_BT_GAP_KEY_REQ_EVT Please enter passkey!");
       break;
 #endif
     case ESP_BT_GAP_READ_RSSI_DELTA_EVT: {
@@ -509,7 +524,7 @@ void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param) {
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 0, 0)
     case ESP_BT_GAP_READ_REMOTE_NAME_EVT: {
       if (param->read_rmt_name.stat == ESP_BT_STATUS_SUCCESS) {
-        Serial.printf("ESP_BT_GAP_READ_REMOTE_NAME_EVT remote name:%s\r\n", param->read_rmt_name.rmt_name);
+        log_i("ESP_BT_GAP_READ_REMOTE_NAME_EVT remote name:%s", param->read_rmt_name.rmt_name);
         memcpy(remoteName, param->read_rmt_name.rmt_name, ESP_BT_GAP_MAX_BDNAME_LEN);
         btNotify(BT_RNAME_EVENT, 0, remoteName);
       }
@@ -518,7 +533,7 @@ void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param) {
     case ESP_BT_GAP_MODE_CHG_EVT:
       break;
     default: {
-      Serial.printf("%s unhandled event %d\r\n", __func__, event);
+      log_i("%s unhandled event %d\r\n", __func__, event);
       break;
     }
   }
@@ -574,14 +589,13 @@ void bt_rc_ct_cb(esp_avrc_ct_cb_event_t event, esp_avrc_ct_cb_param_t *param) {
       }
       break;
     case ESP_AVRC_CT_PASSTHROUGH_RSP_EVT:
-      Serial.printf("AVRC passthrough rsp: key_code 0x%x, key_state %d\r\n",
+      log_i("AVRC passthrough rsp: key_code 0x%x, key_state %d",
                param->psth_rsp.key_code, param->psth_rsp.key_state);
       break;
     case ESP_AVRC_CT_REMOTE_FEATURES_EVT: {
-      //Serial.printf("AVRC remote features %x\r\n", param->rmt_feats.feat_mask);
       btRemoteFeaturesFlag = param->rmt_feats.tg_feat_flag;
       if ((param->rmt_feats.tg_feat_flag & ESP_AVRC_FEAT_FLAG_TG_COVER_ART)) {
-        serial.println("> BT: Peer support Cover Art feature");
+        log_i("> BT: Peer support Cover Art feature");
         // start the cover art connection
       }      
       break;
@@ -589,7 +603,6 @@ void bt_rc_ct_cb(esp_avrc_ct_cb_event_t event, esp_avrc_ct_cb_param_t *param) {
     case ESP_AVRC_CT_CHANGE_NOTIFY_EVT:
         switch (param->change_ntf.event_id) {
         case ESP_AVRC_RN_TRACK_CHANGE:
-          Serial.printf("ESP_AVRC_RN_TRACK_CHANGE\r\n");
           bt_av_new_track();
           break;
         case ESP_AVRC_RN_PLAY_STATUS_CHANGE:
@@ -597,34 +610,27 @@ void bt_rc_ct_cb(esp_avrc_ct_cb_event_t event, esp_avrc_ct_cb_param_t *param) {
           bt_av_playback_changed();
           break;
         case ESP_AVRC_RN_PLAY_POS_CHANGED:
-          //Serial.printf("Play position changed: %d-ms\r\n",
-          //        param->change_ntf.event_parameter.play_pos);
           btNotify(BT_POS_EVENT, param->change_ntf.event_parameter.play_pos, "");
           bt_av_play_pos_changed();
           break;
-
         default:
-          Serial.printf("AVRC unhandled evt %d\r\n", param->change_ntf.event_id);
+          log_i("AVRC unhandled evt %d", param->change_ntf.event_id);
           break;
       }
       break;
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 0, 0)
-
     case ESP_AVRC_CT_GET_RN_CAPABILITIES_RSP_EVT: {
-      //Serial.printf("AVRC remote rn_cap: count %d, bitmask 0x%x\r\n",
-      //         param->get_rn_caps_rsp.cap_count, param->get_rn_caps_rsp.evt_set.bits);
       s_avrc_peer_rn_cap.bits = param->get_rn_caps_rsp.evt_set.bits;
       bt_av_new_track();
       bt_av_playback_changed();
       bt_av_play_pos_changed();
       break;
     }
-
 #endif
 
     default:
-      Serial.printf("%s unhandled event %d", __func__, event);
+      log_i("%s unhandled event %d", __func__, event);
       break;
   }
 }
@@ -636,7 +642,7 @@ void bt_rc_tg_cb(esp_avrc_tg_cb_event_t event, esp_avrc_tg_cb_param_t *param) {
       break;
   }
   case ESP_AVRC_TG_PASSTHROUGH_CMD_EVT: {
-      Serial.printf("AVRC passthrough cmd: key_code 0x%x, key_state %d\r\n", param->psth_cmd.key_code, param->psth_cmd.key_state);
+      log_i("AVRC passthrough cmd: key_code 0x%x, key_state %d", param->psth_cmd.key_code, param->psth_cmd.key_state);
       break;
   }
   case ESP_AVRC_TG_SET_ABSOLUTE_VOLUME_CMD_EVT: {
@@ -654,11 +660,11 @@ void bt_rc_tg_cb(esp_avrc_tg_cb_event_t event, esp_avrc_tg_cb_param_t *param) {
       break;
   }
   case ESP_AVRC_TG_REMOTE_FEATURES_EVT: {
-      Serial.printf("AVRC remote features %x, CT features %x\r\n", param->rmt_feats.feat_mask, param->rmt_feats.ct_feat_flag);
+      log_i("AVRC remote features %x, CT features %x\r\n", param->rmt_feats.feat_mask, param->rmt_feats.ct_feat_flag);
       break;
   }
   default:
-      Serial.printf("%s unhandled event %d\r\n", __func__, event);
+      log_i("%s unhandled event %d\r\n", __func__, event);
       break;
   }
 
@@ -702,8 +708,6 @@ void bt_a2d_cb(esp_a2d_cb_event_t event, esp_a2d_cb_param_t *param)
     break;
   }
   case ESP_A2D_AUDIO_CFG_EVT: {
-    //Serial.printf("> A2DP audio stream config, codec type %d\r\n", param->audio_cfg.mcc.type);
-    // for now only SBC stream is supported
     if (param->audio_cfg.mcc.type == ESP_A2D_MCT_SBC) {
       int sample_rate = 16000;
       char oct0 = param->audio_cfg.mcc.cie.sbc[0];
@@ -717,7 +721,7 @@ void bt_a2d_cb(esp_a2d_cb_event_t event, esp_a2d_cb_param_t *param)
   case ESP_A2D_PROF_STATE_EVT:
     break;
   default:
-    Serial.printf("%s unhandled event %d\r\n", __func__, event);
+    log_i("%s unhandled event %d\r\n", __func__, event);
     break;
   }
 }

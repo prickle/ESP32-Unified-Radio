@@ -777,7 +777,9 @@ void radioTask( void * pvParameters ) {
   static unsigned long lastms = 0;
   struct audioMessage audioRxTaskMessage;
   struct audioMessage audioTxTaskMessage;
-
+#ifdef BLUETOOTH
+  initBT();
+#endif
   if (!audio) audio = new Audio();
   //Serial.println("Got to here..");
   audio->setConnectionTimeout(1000, 4000);

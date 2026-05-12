@@ -533,6 +533,7 @@ void browserListMenu(lv_event_t * event);
 //bluetooth.cpp
 lv_obj_t* createTransportWidget(lv_obj_t* parent);
 void bluetoothMessage(uint32_t source, uint32_t val, const char* txt);
+bool initBT();
 bool startBT();
 void handleBT();
 void stopBT();
