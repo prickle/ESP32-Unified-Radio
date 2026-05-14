@@ -308,12 +308,13 @@ static void passcodeKeyboard_action(lv_event_t * event) {
 #define BT_META_EVENT 3
 #define BT_STATE_EVENT 4
 #define BT_SR_EVENT 5
-#define BT_POS_EVENT 6
-#define BT_RSSI_EVENT 7
-#define BT_RNAME_EVENT 8
-#define BT_PASSKEY_EVENT 9
-#define BT_PASSREQ_EVENT 10
-#define BT_AUTH_EVENT 11
+#define BT_CH_EVENT 6
+#define BT_POS_EVENT 7
+#define BT_RSSI_EVENT 8
+#define BT_RNAME_EVENT 9
+#define BT_PASSKEY_EVENT 10
+#define BT_PASSREQ_EVENT 11
+#define BT_AUTH_EVENT 12
 
 //Called from audio message handler to deal with bluetooth related messages
 void bluetoothMessage(uint32_t source, uint32_t val, const char* txt) {
@@ -377,6 +378,9 @@ void bluetoothMessage(uint32_t source, uint32_t val, const char* txt) {
     currentSampleRate = val;
     setSampleRate(currentSampleRate);
   }
+  else if (source == BT_CH_EVENT) {
+    updateSTMOLabel(val == 1 ? STMO_MONO : STMO_STEREO);    
+  }
   else if (source == BT_POS_EVENT) {
     //Not using this right now
   }
@@ -437,6 +441,7 @@ bool btAutoConnect = false;
 uint8_t btAutoRetry = 0;
 unsigned long btAutoTimeout = 0;
 uint8_t btVolume = 0;
+uint8_t btChannels = 0;
 uint16_t btRemoteFeaturesFlag = 0;
 int8_t lastRSSI = 0;
 char remoteName[ESP_BT_GAP_MAX_BDNAME_LEN];
@@ -864,6 +869,7 @@ void bt_a2d_cb(esp_a2d_cb_event_t event, esp_a2d_cb_param_t *param)
     if (ESP_A2D_AUDIO_STATE_STARTED == param->audio_stat.state) {
       btConnected = true;
     } else if (ESP_A2D_AUDIO_STATE_STOPPED == param->audio_stat.state) {
+      btChannels = 0;
       btConnected = false;
     }
     break;
@@ -876,6 +882,10 @@ void bt_a2d_cb(esp_a2d_cb_event_t event, esp_a2d_cb_param_t *param)
       else if (oct0 & (0x01 << 5)) sample_rate = 44100;
       else if (oct0 & (0x01 << 4)) sample_rate = 48000;
       btNotify(BT_SR_EVENT, sample_rate, "");
+      uint8_t oct1 = param->audio_cfg.mcc.cie.sbc[1];
+      if (oct1 & 0x08) btChannels = 1;  // mono
+      else btChannels = 2;  // any other mode
+      btNotify(BT_CH_EVENT, btChannels, "");
     }
     break;
   }
@@ -889,9 +899,9 @@ void bt_a2d_cb(esp_a2d_cb_event_t event, esp_a2d_cb_param_t *param)
 
 //BT Advanced Audio Distribution Profile Data
 void bt_data_cb(const uint8_t *data, uint32_t len){
-
-  // number of 16 bit sample pairs l/r
-  int n = len/4;
+  if (!btChannels) return;
+  // number of 16 bit sample pairs l/r or individual mono samples
+  int n = len / (btChannels * 2);
   // point to a 16bit sample 
   int16_t* data16=(int16_t*)data;
    
@@ -899,9 +909,12 @@ void bt_data_cb(const uint8_t *data, uint32_t len){
     // put the current sample in fy
     
     int16_t sample[2];
-
-    sample[0] = (*data16++); // half Vin so we can boost up to 6dB in filters
-    sample[1] = (*data16++);
+    if (btChannels == 1) {
+      sample[0] = sample[1] = (*data16++);
+    } else {
+      sample[0] = (*data16++);
+      sample[1] = (*data16++);
+    }
     while (1) { if(playSample(sample)) break; }
     
   }
