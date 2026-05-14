@@ -28,6 +28,7 @@ esp_bd_addr_t peerAddress = {0};
 
 void passcodeEntered(const char*);
 
+//Bluetooth transport controls
 lv_obj_t* createTransportWidget(lv_obj_t* parent) {
   transportContainer = lv_obj_create(parent);
   lv_obj_add_style(transportContainer, &style_groupbox, LV_PART_MAIN);
@@ -118,6 +119,7 @@ static void rewBtn_action(lv_event_t * event) {
   if (code == LV_EVENT_RELEASED) passBluetooth(ESP_AVRC_PT_CMD_REWIND, ESP_AVRC_PT_CMD_STATE_RELEASED);
 }
 
+//Change play button icon from play to pause and back
 void updatePlayButton() {
   bool playing = (currentPlayStatus == ESP_AVRC_PLAYBACK_PLAYING) || 
                  (currentPlayStatus == ESP_AVRC_PLAYBACK_FWD_SEEK) || 
@@ -166,7 +168,7 @@ bool isBtConnected() {
 }
 
 bool isBtStarted() {
-  return currentConnectionState;
+  return currentStackState;
 }
 
 //------------------------------------------------------------------------------------
@@ -181,7 +183,7 @@ static void passcodeWindow_action(lv_event_t * event);
 static void passcodeKeyboard_action(lv_event_t * event);
 static void passcodeTimer_action(lv_timer_t * timer);
 
-//Construct the popup and pop it up
+//Construct the passcode window and pop it up
 void createPasscodeWindow(lv_obj_t * page, int y, void(*okFunction)(const char*), bool animated) {
   if (passcodeWindow) {
     lv_obj_del(passcodeWindow);
@@ -236,6 +238,7 @@ void createPasscodeWindow(lv_obj_t * page, int y, void(*okFunction)(const char*)
   passcodeTimer = lv_timer_create(passcodeTimer_action, PASSCODE_TIMEOUT, NULL);
 }
 
+//Trigger the passcode window popup
 void getPasscode(void(*okFunction)(const char*), bool animated) {
 #ifdef VUMETER
   createPasscodeWindow(mainWindow, 112, okFunction, animated); 
@@ -249,6 +252,7 @@ void passcodeHiddenAction(lv_anim_t * a) {
   passcodeWindow = NULL;  
 }
 
+//Close the passcode window
 void closePasscode(bool animated) {
   if (passcodeWindow == NULL) return;
   if (passcodeTimer) lv_timer_del(passcodeTimer);
@@ -282,6 +286,7 @@ static void passcodeTimer_action(lv_timer_t * timer) {
   closePasscode(true);
 }
 
+//Send the passcode reply
 void passcodeEntered(const char* passcodeStr) {
   uint32_t code = atoi(passcodeStr);
   if (code > 0) {
@@ -300,8 +305,10 @@ static void passcodeKeyboard_action(lv_event_t * event) {
   }
 }
 
-
+//------------------------------------------------------------------
 //Bluetooth events
+//From main thread context
+
 #define BT_TXT_EVENT 0
 #define BT_CONN_EVENT 1
 #define BT_VOL_EVENT 2
@@ -426,7 +433,7 @@ void clearPeerAddress() {
 }
 
 //-------------------------------------------------------
-// Threaded below - called from audio thread
+// Threaded below - called from audio thread context
 
 void bt_data_cb(const uint8_t *data, uint32_t len);
 void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param);
