@@ -35,7 +35,7 @@ bool wrBtStarted = false;
 enum : uint8_t { WR_START, WR_SETVOLUME, WR_GETVOLUME, WR_CONNECTTOHOST, WR_CONNECTTOFS, WR_STOPSONG, 
                  WR_META, WR_CONNECTING, WR_SETTONE, WR_STATS, WR_TITLE, WR_STATION, WR_ICYURL, WR_DELETE, 
                  WR_VU, WR_EOF, WR_EMBED, WR_RESPONSE, WR_MONO, WR_SRATE, WR_SETWIDE, 
-                 WR_BTSTART, WR_BTSTOP, WR_BTMSG, WR_BTVOL, WR_BTPASS, WR_BTRSSI };
+                 WR_BTSTART, WR_BTSTOP, WR_BTMSG, WR_BTVOL, WR_BTPASS, WR_BTRSSI, WR_BTAUTH };
 
 //Webradio message
 struct audioMessage{
@@ -214,6 +214,14 @@ void passBluetooth(uint8_t key, uint8_t state) {
   audioTxMessage.cmd = WR_BTPASS;
   audioTxMessage.value1 = key;
   audioTxMessage.value2 = state;
+  xQueueSend(audioSetQueue, &audioTxMessage, 0);
+}
+
+void authBluetooth(uint32_t code, bool accept) {
+  if (!wrBtStarted || !audioSetQueue) return;
+  audioTxMessage.cmd = WR_BTAUTH;
+  audioTxMessage.value1 = code;
+  audioTxMessage.value2 = accept;
   xQueueSend(audioSetQueue, &audioTxMessage, 0);
 }
 
@@ -874,6 +882,9 @@ void radioTask( void * pvParameters ) {
       }
       else if(audioRxTaskMessage.cmd == WR_BTPASS){
         BTpassthrough(audioRxTaskMessage.value1, audioRxTaskMessage.value2);
+      }
+      else if(audioRxTaskMessage.cmd == WR_BTAUTH){
+        BTauthorise(audioRxTaskMessage.value1, audioRxTaskMessage.value2);
       }                  
       else if(audioRxTaskMessage.cmd == WR_BTRSSI){
         BTupdateRssi();

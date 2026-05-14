@@ -184,6 +184,7 @@ extern lv_obj_t * progTextLbl;
 extern lv_obj_t * keyBoard;
 
 //Top-level shared objects
+extern lv_obj_t * mainWindow;
 extern lv_obj_t * browserMainList;
 extern lv_obj_t * tabView;
 extern lv_obj_t * vuMeter;
@@ -373,7 +374,7 @@ struct __attribute__ ((packed)) settingsObject{
   bool wide;
   bool weather;
   bool reconnectBt;
-  bool pinreqBt;
+  uint8_t pinreqBt;
   uint8_t hostAddrBt[6];
   uint8_t pincodeBt[4];
 };

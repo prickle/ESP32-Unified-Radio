@@ -499,6 +499,7 @@ void startBluetooth();
 void stopBluetooth();
 void btNotify(uint32_t source, uint32_t val, const char* msg);
 void passBluetooth(uint8_t key, uint8_t state);
+void authBluetooth(uint32_t code, bool accept);
 void rssiBluetooth();
 void audio_showstation(const char *info);
 void audio_showstreamtitle(const char *info);
@@ -532,7 +533,10 @@ void browserListMenu(lv_event_t * event);
 #ifdef BLUETOOTH
 //bluetooth.cpp
 lv_obj_t* createTransportWidget(lv_obj_t* parent);
+void getPasscode(void(*okFunction)(const char*), bool animated);
 void bluetoothMessage(uint32_t source, uint32_t val, const char* txt);
+bool isBtConnected();
+bool isBtStarted();
 bool initBT();
 bool startBT();
 void handleBT();
@@ -540,6 +544,7 @@ void stopBT();
 bool isBtConnected();
 void BTvolchange(uint32_t vol);
 void BTpassthrough(uint8_t code, uint8_t state);
+void BTauthorise(uint32_t code, bool accept);
 void BTsetRSSIActive(bool active);
 bool BTupdateRssi();
 bool BTconnect(esp_bd_addr_t peer);

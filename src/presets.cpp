@@ -321,6 +321,16 @@ void updateUrlEditText() {
     else if (settings->mode == MODE_DLNA) {
       lv_textarea_set_text(urlEditText, sdFileName);  
     }
+#ifdef BLUETOOTH
+    else if (settings->mode == MODE_BT) {
+      char addr[64] = {};
+      if (isBtConnected()) {        
+        sprintf(addr, "BT://%02X:%02X:%02X:%02X:%02X:%02X", settings->hostAddrBt[0], settings->hostAddrBt[1], 
+          settings->hostAddrBt[2], settings->hostAddrBt[3], settings->hostAddrBt[4], settings->hostAddrBt[5]);
+        } else sprintf(addr, "BT://"); 
+      lv_textarea_set_text(urlEditText, addr);  
+    }
+#endif
 #ifdef LINEIN     
     else if (settings->mode == MODE_LINE) {
       lv_textarea_set_text(urlEditText, "LINE://IN");  

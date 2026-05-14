@@ -6,7 +6,7 @@
 
 const char * codecString[] = {"", "WAV", "MP3", "AAC", "M4A", "FLAC", "OGG", "OFLC", "OPUS"};
 
-static lv_obj_t * mainWindow;
+lv_obj_t * mainWindow;
 
 //Main info labels
 lv_obj_t * progNameLbl = NULL;

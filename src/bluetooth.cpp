@@ -21,9 +21,12 @@ bool playButtonState = false;
 int currentPlayStatus = ESP_AVRC_PLAYBACK_STOPPED;
 int currentSampleRate = 0;
 bool currentConnectionState = false;
+volatile bool currentStackState = false;
 bool gotMetadata = false;
 const char * rName = NULL;
-//bool autoConnectAllowed = false;
+esp_bd_addr_t peerAddress = {0};
+
+void passcodeEntered(const char*);
 
 lv_obj_t* createTransportWidget(lv_obj_t* parent) {
   transportContainer = lv_obj_create(parent);
@@ -162,6 +165,142 @@ bool isBtConnected() {
   return currentConnectionState;
 }
 
+bool isBtStarted() {
+  return currentConnectionState;
+}
+
+//------------------------------------------------------------------------------------
+// Passcode window - action required
+
+static lv_obj_t * passcodeWindow;
+static lv_obj_t * passcodeKeyboard;
+static lv_timer_t * passcodeTimer = NULL;
+#define PASSCODE_TIMEOUT 20000
+
+static void passcodeWindow_action(lv_event_t * event);
+static void passcodeKeyboard_action(lv_event_t * event);
+static void passcodeTimer_action(lv_timer_t * timer);
+
+//Construct the popup and pop it up
+void createPasscodeWindow(lv_obj_t * page, int y, void(*okFunction)(const char*), bool animated) {
+  if (passcodeWindow) {
+    lv_obj_del(passcodeWindow);
+    animated = false;
+  }
+  passcodeWindow = lv_win_create(page, 40);
+  lv_obj_set_size(passcodeWindow, 208, 170);
+  int width = lv_obj_get_content_width(page);
+  int x = (width - 208) / 2;
+  lv_obj_set_pos(passcodeWindow, x, y);
+  lv_obj_add_style(passcodeWindow, &style_win, LV_PART_MAIN);
+  lv_obj_set_style_bg_opa(passcodeWindow, LV_OPA_COVER, LV_PART_MAIN);
+  lv_obj_t * header = lv_win_get_header(passcodeWindow);
+  lv_obj_t * title = lv_textarea_create(header);
+  lv_textarea_set_one_line(title, true);
+  lv_textarea_set_placeholder_text(title, "Passcode?");
+  lv_obj_set_width(title, 80);
+  lv_obj_add_style(title, &style_biggerfont, LV_PART_MAIN);
+  lv_obj_add_style(header, &style_groupbox, LV_PART_MAIN);
+
+  lv_obj_t * body = lv_win_get_content(passcodeWindow);
+  passcodeKeyboard = lv_keyboard_create(body);
+  lv_keyboard_set_mode(passcodeKeyboard, LV_KEYBOARD_MODE_NUMBER);
+  lv_obj_set_size(passcodeKeyboard, lv_pct(100), lv_pct(100));
+  lv_keyboard_set_textarea(passcodeKeyboard, title);
+  lv_obj_add_event_cb(keyBoard, passcodeKeyboard_action, LV_EVENT_ALL, NULL);
+
+  lv_obj_t * ok_btn = lv_win_add_btn(passcodeWindow, LV_SYMBOL_OK, 50);           /*Add close button and use built-in close action*/
+  lv_obj_add_style(ok_btn, &style_wp, LV_PART_MAIN);  
+  lv_obj_add_style(ok_btn, &style_bigfont_orange, LV_PART_MAIN);
+  lv_obj_add_style(ok_btn, &style_bigfont_orange, LV_PART_SELECTED);
+  lv_obj_add_event_cb(ok_btn, passcodeWindow_action, LV_EVENT_CLICKED, (void*)okFunction);
+
+  lv_obj_t * cancel_btn = lv_win_add_btn(passcodeWindow, LV_SYMBOL_CLOSE, 50);           /*Add close button and use built-in close action*/
+  lv_obj_add_style(cancel_btn, &style_wp, LV_PART_MAIN);  
+  lv_obj_add_style(cancel_btn, &style_bigfont_orange, LV_PART_MAIN);
+  lv_obj_add_style(cancel_btn, &style_bigfont_orange, LV_PART_SELECTED);
+  lv_obj_add_event_cb(cancel_btn, passcodeWindow_action, LV_EVENT_CLICKED, NULL);
+  if (animated) {
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, passcodeWindow);
+    lv_anim_set_values(&a, LV_VER_RES, y);
+#pragma GCC diagnostic push                         //Trouble at mill - pay no heed
+#pragma GCC diagnostic ignored "-Wcast-function-type"
+    lv_anim_set_exec_cb(&a, (lv_anim_exec_xcb_t)lv_obj_set_y);
+#pragma GCC diagnostic pop
+    lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
+    lv_anim_set_time(&a, 500);
+    lv_anim_start(&a);
+  }
+  passcodeTimer = lv_timer_create(passcodeTimer_action, PASSCODE_TIMEOUT, NULL);
+}
+
+void getPasscode(void(*okFunction)(const char*), bool animated) {
+#ifdef VUMETER
+  createPasscodeWindow(mainWindow, 112, okFunction, animated); 
+#else
+  createPasscodeWindow(mainWindow, 0, okFunction, animated); 
+#endif
+}
+
+void passcodeHiddenAction(lv_anim_t * a) {
+  lv_obj_del(passcodeWindow);
+  passcodeWindow = NULL;  
+}
+
+void closePasscode(bool animated) {
+  if (passcodeWindow == NULL) return;
+  if (passcodeTimer) lv_timer_del(passcodeTimer);
+  passcodeTimer = NULL;
+  if (animated) {
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, passcodeWindow);
+    lv_anim_set_values(&a, lv_obj_get_y(passcodeWindow), LV_VER_RES);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-function-type"
+    lv_anim_set_exec_cb(&a, (lv_anim_exec_xcb_t)lv_obj_set_y);
+#pragma GCC diagnostic pop
+    lv_anim_set_ready_cb(&a, passcodeHiddenAction);
+    lv_anim_set_path_cb(&a, lv_anim_path_ease_in);
+    lv_anim_set_time(&a, 500);
+    lv_anim_start(&a);
+  } else {
+    lv_obj_del(passcodeWindow);
+    passcodeWindow = NULL;  
+  }
+}
+
+static void passcodeWindow_action(lv_event_t * event) {
+  void (*okFunction)(const char*) = (void(*)(const char*))lv_event_get_user_data(event);
+  if (okFunction) (*okFunction)(lv_textarea_get_text(lv_keyboard_get_textarea(passcodeKeyboard)));
+  closePasscode(true);
+}
+
+static void passcodeTimer_action(lv_timer_t * timer) {
+  closePasscode(true);
+}
+
+void passcodeEntered(const char* passcodeStr) {
+  uint32_t code = atoi(passcodeStr);
+  if (code > 0) {
+    authBluetooth(code, true);
+  }
+}
+
+static void passcodeKeyboard_action(lv_event_t * event) {
+  uint32_t res = lv_event_get_code(event);
+  if (passcodeTimer) lv_timer_reset(passcodeTimer);
+  if(res == LV_EVENT_READY || res == LV_EVENT_CANCEL){
+    closePasscode(true);
+    if(res == LV_EVENT_READY)
+      passcodeEntered(lv_textarea_get_text(lv_keyboard_get_textarea(passcodeKeyboard)));
+  
+  }
+}
+
+
 //Bluetooth events
 #define BT_TXT_EVENT 0
 #define BT_CONN_EVENT 1
@@ -172,12 +311,21 @@ bool isBtConnected() {
 #define BT_POS_EVENT 6
 #define BT_RSSI_EVENT 7
 #define BT_RNAME_EVENT 8
+#define BT_PASSKEY_EVENT 9
+#define BT_PASSREQ_EVENT 10
+#define BT_AUTH_EVENT 11
 
 //Called from audio message handler to deal with bluetooth related messages
 void bluetoothMessage(uint32_t source, uint32_t val, const char* txt) {
   if (settings->mode != MODE_BT) return;
   if (source == BT_TXT_EVENT) {
     info(TEXT, 0, LV_SYMBOL_BLUETOOTH " %s", txt);
+  }
+  if (source == BT_AUTH_EVENT) {
+    closePasscode(true);
+    if (val == ESP_BT_STATUS_SUCCESS) {
+      info(TEXT, 0, "Authentication success: %s\r\n", txt);
+    } else info(TEXT, 0, "Authentication failed, status:%d\r\n", val);
   }
   else if (source == BT_CONN_EVENT) {
     currentConnectionState = val;
@@ -189,6 +337,7 @@ void bluetoothMessage(uint32_t source, uint32_t val, const char* txt) {
         info(TEXT, 0, LV_SYMBOL_BLUETOOTH " Connected to %s", rName);
       } 
       else info(TEXT, 0, LV_SYMBOL_BLUETOOTH " Connected");
+      updateUrlEditText();
     }
     else if (val == ESP_A2D_CONNECTION_STATE_DISCONNECTED) {
       info(TEXT, 0, LV_SYMBOL_BLUETOOTH " Disconnected");
@@ -196,15 +345,16 @@ void bluetoothMessage(uint32_t source, uint32_t val, const char* txt) {
       info(NOW, 0, "");
       rName = NULL;
       gotMetadata = false;
+      updateUrlEditText();
     }
   }
   else if (source == BT_VOL_EVENT) {
-    //serial.printf("> BT Set Volume: %d\r\n", val);
     settings->dabVolume = val * 21.0f / 127.0f; 
     setVolume(settings->dabVolume);
     if (dabVolSlider) {
       lv_slider_set_value(dabVolSlider, settings->dabVolume, LV_ANIM_OFF);
     }
+    writeSettings();
   }
   else if (source == BT_META_EVENT) {
     gotMetadata = true;
@@ -242,11 +392,17 @@ void bluetoothMessage(uint32_t source, uint32_t val, const char* txt) {
     if (currentConnectionState)
       info(TEXT, 0, LV_SYMBOL_BLUETOOTH " Connected to %s", rName);
   }
+  else if (source == BT_PASSKEY_EVENT) {
+      info(NAME, 10, "Passkey: %d", val);
+  }
+  else if (source == BT_PASSREQ_EVENT) {
+    getPasscode(passcodeEntered, true);
+  }
+
 }
 
 //--------------------------------------------------------
 //Address handling
-esp_bd_addr_t peerAddress = {0};
 
 bool readPeerAddress() {
   esp_bd_addr_t empty_connection = {0, 0, 0, 0, 0, 0};
@@ -366,15 +522,12 @@ bool startBT() {
   if (settings->pinreqBt) {
     // Set default parameters for Secure Simple Pairing
     esp_bt_sp_param_t param_type = ESP_BT_SP_IOCAP_MODE;
-    esp_bt_io_cap_t iocap = ESP_BT_IO_CAP_IO;
+    esp_bt_io_cap_t iocap = ESP_BT_IO_CAP_IN;
+    if(settings->pinreqBt == 1) iocap = ESP_BT_IO_CAP_OUT;
     err = esp_bt_gap_set_security_param(param_type, &iocap, sizeof(uint8_t));
     if (err != ESP_OK) { fail = true; log_e("esp_bt_gap_set_security_param:%d", err); }
     // invokes callbacks
     pin_type = ESP_BT_PIN_TYPE_VARIABLE;
-    esp_bt_pin_code_t pin_code;
-    memcpy(pin_code, settings->pincodeBt, 4);
-    err = esp_bt_gap_set_pin(pin_type, 4, pin_code); 
-    if (err != ESP_OK) { fail = true; log_e("esp_bt_gap_set_pin:%d", err); }
   } else {
     // Set default parameters for Legacy Pairing
     esp_bt_sp_param_t param_type = ESP_BT_SP_IOCAP_MODE;
@@ -383,10 +536,12 @@ bool startBT() {
     if (err != ESP_OK) { fail = true; log_e("esp_bt_gap_set_security_param:%d", err); }
     // no callbacks
     pin_type = ESP_BT_PIN_TYPE_FIXED;
-    esp_bt_pin_code_t pin_code;
-    err = esp_bt_gap_set_pin(pin_type, 0, pin_code);
-    if (err != ESP_OK) { fail = true; log_e("esp_bt_gap_set_pin:%d", err); }
   }
+
+  esp_bt_pin_code_t pin_code;
+  memcpy(pin_code, settings->pincodeBt, 4);
+  err = esp_bt_gap_set_pin(pin_type, 0, pin_code);
+  if (err != ESP_OK) { fail = true; log_e("esp_bt_gap_set_pin:%d", err); }
 
   //Reconnect to last peer
   btAutoConnect = settings->reconnectBt;
@@ -400,6 +555,7 @@ bool startBT() {
     btAutoTimeout = 0;
   }
   btAutoRetry = 0;
+  currentStackState = (!fail);
   return (!fail);
 }
 
@@ -423,6 +579,7 @@ void handleBT() {
 
 //Shut down BT controller - called from audio thread
 void stopBT() {
+  currentStackState = false;
   esp_a2d_sink_deinit();
   esp_bluedroid_disable();
   esp_bluedroid_deinit();
@@ -450,6 +607,13 @@ void BTpassthrough(uint8_t code, uint8_t state) {
     tl = (tl + 1) % 16;
   }
 }
+
+void BTauthorise(uint32_t code, bool accept) {
+  if (esp_bt_gap_ssp_passkey_reply(peerAddress, accept, code) != ESP_OK) {
+    log_e("esp_bt_gap_ssp_passkey_reply");
+  }
+}
+
 
 /// Activates the rssi reporting
 void BTsetRSSIActive(bool active) { rssiActive = active; }
@@ -482,16 +646,9 @@ bool BTdisconnect(esp_bd_addr_t peer) {
 
 //BT Generic Access Profile
 void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param) {
-  char buff[312];
   switch (event) {
     case ESP_BT_GAP_AUTH_CMPL_EVT: {
-      if (param->auth_cmpl.stat == ESP_BT_STATUS_SUCCESS) {
-        sprintf(buff, "Authentication success: %s\r\n", param->auth_cmpl.device_name);
-        btNotify(BT_TXT_EVENT, event, buff);
-      } else {
-        sprintf(buff, "Authentication failed, status:%d\r\n", param->auth_cmpl.stat);
-        btNotify(BT_TXT_EVENT, event, buff);
-      }
+      btNotify(BT_AUTH_EVENT, param->auth_cmpl.stat, (const char*)param->auth_cmpl.device_name);
       break;
     }
     case ESP_BT_GAP_PIN_REQ_EVT: 
@@ -505,13 +662,15 @@ void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param) {
       } break;
 #if (CONFIG_BT_SSP_ENABLED == true)
     case ESP_BT_GAP_CFM_REQ_EVT:
-      log_i("ESP_BT_GAP_CFM_REQ_EVT Please compare the numeric value: %d", param->cfm_req.num_val);
+      btAutoTimeout = 0;
+      btNotify(BT_PASSKEY_EVENT, param->cfm_req.num_val, "");
       if (esp_bt_gap_ssp_confirm_reply(param->cfm_req.bda, true) != ESP_OK) {
         log_e("esp_bt_gap_ssp_passkey_reply");
       }
       break;
     case ESP_BT_GAP_KEY_REQ_EVT:
-      log_i("ESP_BT_GAP_KEY_REQ_EVT Please enter passkey!");
+      btAutoTimeout = 0;
+      btNotify(BT_PASSREQ_EVENT, param->cfm_req.num_val, "");
       break;
 #endif
     case ESP_BT_GAP_READ_RSSI_DELTA_EVT: {
@@ -530,6 +689,8 @@ void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param) {
       }
     } break;
 #endif
+    case ESP_BT_GAP_CONFIG_EIR_DATA_EVT:
+      break;
     case ESP_BT_GAP_MODE_CHG_EVT:
       break;
     default: {

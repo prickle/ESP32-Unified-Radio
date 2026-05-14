@@ -77,7 +77,7 @@ void setDefaults() {
     false,      //Stereo Wide
     true,       //Weather client enabled
     false,      //Auto reconnect Bluetooth
-    false,      //Pin required Bluetooth
+    0,          //Security mode Bluetooth
     {0, 0, 0, 0, 0, 0},  //Host Address Bluetooth
     {1, 2, 3, 4}//Pin Code Bluetooth
   }; 
@@ -306,7 +306,7 @@ static lv_obj_t * ftpPassText;
 static lv_obj_t * saveSwitch;
 static lv_obj_t * monoSwitch;
 static lv_obj_t * autoBtSwitch;
-static lv_obj_t * pinBtSwitch;
+static lv_obj_t * pinBtMatrix;
 static lv_obj_t * pinBtText;
 static lv_obj_t * brightSlider;
 static lv_obj_t * webToneSlider1;
@@ -317,7 +317,7 @@ static lv_obj_t * wideSwitch;
 bool editWifiPassword = false;
 const char * wlanStateString[] = { "WiFi Idle", "No SSID", "Scan Completed", "Connected", 
                                    "Connect Failed", "Connection Lost", "Disconnected"};
-
+static const char * btPinMap[] = {"None", "Simple", "Full", ""};
 
 void createSettingsWindow(lv_obj_t * page) {
   static lv_style_t style_bg;
@@ -576,7 +576,7 @@ void createSettingsWindow(lv_obj_t * page) {
 
     // -- Bluetooth controls
     btContainer = lv_obj_create(page);
-    lv_obj_set_size(btContainer, width, 86);
+    lv_obj_set_size(btContainer, width, 120);
     lv_obj_add_style(btContainer, &style_groupbox, LV_PART_MAIN);
     lv_obj_clear_flag(btContainer, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_align_to(btContainer, wifiContainer, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);         //Align next to the slider
@@ -594,25 +594,29 @@ void createSettingsWindow(lv_obj_t * page) {
     lv_obj_add_event_cb(autoBtSwitch, autoBtAction, LV_EVENT_VALUE_CHANGED, NULL); 
  
     btn_label = lv_label_create(btContainer);
-    lv_obj_set_pos(btn_label, 10, 42);                //Align below the first button
-    lv_label_set_text(btn_label, "Bluetooth Pin Code");
+    lv_obj_set_pos(btn_label, 10, 44);                //Align below the first button
+    lv_label_set_text(btn_label, "Security");
 
-    pinBtSwitch = lv_switch_create(btContainer);
-    lv_obj_set_size(pinBtSwitch, 44, 20);
-    if (settings->pinreqBt) lv_obj_add_state(pinBtSwitch, LV_STATE_CHECKED);
-    else lv_obj_clear_state(pinBtSwitch, LV_STATE_CHECKED);
-    lv_obj_align_to(pinBtSwitch, btn_label, LV_ALIGN_OUT_RIGHT_MID, 20, 0);         //Align next to the slider
-    lv_obj_add_event_cb(pinBtSwitch, pinBtAction, LV_EVENT_VALUE_CHANGED, NULL); 
+    pinBtMatrix = lv_btnmatrix_create(btContainer);
+    lv_obj_set_size(pinBtMatrix, 200, 30);
+    lv_btnmatrix_set_map(pinBtMatrix, btPinMap);
+    lv_btnmatrix_set_btn_ctrl_all(pinBtMatrix, LV_BTNMATRIX_CTRL_CHECKABLE);
+    lv_btnmatrix_set_one_checked(pinBtMatrix, true);
+    lv_btnmatrix_set_btn_ctrl(pinBtMatrix, settings->pinreqBt, LV_BTNMATRIX_CTRL_CHECKED);
+    lv_obj_align_to(pinBtMatrix, btn_label, LV_ALIGN_OUT_RIGHT_MID, 20, 0);         //Align next to the slider
+    lv_obj_add_event_cb(pinBtMatrix, pinBtAction, LV_EVENT_VALUE_CHANGED, NULL); 
  
+    btn_label = lv_label_create(btContainer);
+    lv_obj_set_pos(btn_label, 10, 78);                //Align below the first button
+    lv_label_set_text(btn_label, "Bluetooth Legacy PIN Code");
+
     pinBtText = lv_textarea_create(btContainer);
     lv_obj_set_size(pinBtText, width - 250, 20);
-    lv_obj_align_to(pinBtText, pinBtSwitch, LV_ALIGN_OUT_RIGHT_MID, 16, 0);         //Align next to the slider
+    lv_obj_align_to(pinBtText, btn_label, LV_ALIGN_OUT_RIGHT_MID, 16, 0);         //Align next to the slider
     lv_obj_add_style(pinBtText, &style_ta, LV_PART_MAIN);
     lv_textarea_set_text_selection(pinBtText, false);
     lv_textarea_set_one_line(pinBtText, true);
     lv_obj_add_event_cb(pinBtText, pinBtTextAction, LV_EVENT_PRESSED, NULL);
-    if (settings->pinreqBt) lv_obj_clear_state(pinBtText, LV_STATE_DISABLED);
-    else lv_obj_add_state(pinBtText, LV_STATE_DISABLED);
 
     btSetEditText();
 
@@ -1148,11 +1152,10 @@ void autoBtAction(lv_event_t * event) {
 }
 
 void pinBtAction(lv_event_t * event) {
-  settings->pinreqBt = lv_obj_has_state(pinBtSwitch, LV_STATE_CHECKED);
+  lv_obj_t * obj = lv_event_get_target(event);
+  settings->pinreqBt = lv_btnmatrix_get_selected_btn(obj);
   writeSettings();
-  if (settings->pinreqBt) lv_obj_clear_state(pinBtText, LV_STATE_DISABLED);
-  else lv_obj_add_state(pinBtText, LV_STATE_DISABLED);
-  restartBluetooth();
+  if (isBtStarted()) restartBluetooth();
 }
 
 void keyboardPinBtKeyAction(lv_event_t * event) {
@@ -1170,7 +1173,7 @@ void keyboardPinBtKeyAction(lv_event_t * event) {
         memcpy(settings->pincodeBt, pin, 4);
         writeSettings();
         btSetEditText();
-        restartBluetooth();
+        if (isBtStarted()) restartBluetooth();
       } else btSetEditText();
     }
     else if (res == LV_EVENT_CANCEL){
