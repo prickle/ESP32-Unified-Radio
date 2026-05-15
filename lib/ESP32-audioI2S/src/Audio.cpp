@@ -4318,8 +4318,8 @@ void Audio::DSP(float *fsample) {
     //Stereo wide
     if (m_f_stereoWide) {
         static float wideness = 0.4;
-        float mid = (fsample[LEFTCHANNEL] + fsample[RIGHTCHANNEL]) * 0.5f;
-        float side = (fsample[LEFTCHANNEL] - fsample[RIGHTCHANNEL]) * (0.5f + wideness);
+        float mid = (fsample[LEFTCHANNEL] + fsample[RIGHTCHANNEL]) * 0.4f;
+        float side = (fsample[LEFTCHANNEL] - fsample[RIGHTCHANNEL]) * (0.4f + wideness);
         fsample[LEFTCHANNEL] = mid + side;
         fsample[RIGHTCHANNEL] = mid - side;    
     }
