@@ -321,6 +321,24 @@ void updateTimeBar() {
   }
 }
 
+void updatePlayStatus() {
+  uint8_t infoLine = NAME;
+  if (gotMetadata) infoLine = TEXT;
+  if (showingTimeBar) {
+    if (currentPlayStatus == ESP_AVRC_PLAYBACK_PLAYING) info(infoLine, 0, LV_SYMBOL_PLAY);
+    else if (currentPlayStatus == ESP_AVRC_PLAYBACK_STOPPED) info(infoLine, 0, LV_SYMBOL_STOP);
+    else if (currentPlayStatus == ESP_AVRC_PLAYBACK_PAUSED) info(infoLine, 0, LV_SYMBOL_PAUSE);
+    else if (currentPlayStatus == ESP_AVRC_PLAYBACK_FWD_SEEK) info(infoLine, 0, LV_SYMBOL_RIGHT);
+    else if (currentPlayStatus == ESP_AVRC_PLAYBACK_REV_SEEK) info(infoLine, 0, LV_SYMBOL_LEFT);
+  } else {
+    if (currentPlayStatus == ESP_AVRC_PLAYBACK_PLAYING) info(infoLine, 0, LV_SYMBOL_PLAY " Playing");
+    else if (currentPlayStatus == ESP_AVRC_PLAYBACK_STOPPED) info(infoLine, 0, LV_SYMBOL_STOP " Stopped");
+    else if (currentPlayStatus == ESP_AVRC_PLAYBACK_PAUSED) info(infoLine, 0, LV_SYMBOL_PAUSE " Paused");
+    else if (currentPlayStatus == ESP_AVRC_PLAYBACK_FWD_SEEK) info(infoLine, 0, LV_SYMBOL_RIGHT " Fast Forward");
+    else if (currentPlayStatus == ESP_AVRC_PLAYBACK_REV_SEEK) info(infoLine, 0, LV_SYMBOL_LEFT, " Rewind");
+  }
+}
+
 //------------------------------------------------------------------
 //Bluetooth events
 //From main thread context
@@ -338,6 +356,7 @@ void updateTimeBar() {
 #define BT_PASSKEY_EVENT 10
 #define BT_PASSREQ_EVENT 11
 #define BT_AUTH_EVENT 12
+#define BT_CHANGE_EVENT 13
 
 //Called from audio message handler to deal with bluetooth related messages
 void bluetoothMessage(uint32_t source, uint32_t val, const char* txt) {
@@ -369,6 +388,7 @@ void bluetoothMessage(uint32_t source, uint32_t val, const char* txt) {
       info(NOW, 0, "");
       rName = NULL;
       gotMetadata = false;
+      updatePlayStatus();
       updateUrlEditText();
     }
   }
@@ -388,24 +408,19 @@ void bluetoothMessage(uint32_t source, uint32_t val, const char* txt) {
       trackLength = atoi(txt);
       updateTimeBar();
     }
+    updatePlayStatus();
+  }
+  else if (source == BT_CHANGE_EVENT) {
+    gotMetadata = false;
+    info(TEXT, 0, LV_SYMBOL_STOP " Stopped");
+    info(NAME, 0, "");
+    trackLength = 0;
+    updateTimeBar();
+    updatePlayStatus();
   }
   else if (source == BT_STATE_EVENT) {
     currentPlayStatus = val;
-    uint8_t infoLine = NAME;
-    if (gotMetadata) infoLine = TEXT;
-    if (showingTimeBar) {
-      if (currentPlayStatus == ESP_AVRC_PLAYBACK_PLAYING) info(infoLine, 0, LV_SYMBOL_PLAY);
-      else if (currentPlayStatus == ESP_AVRC_PLAYBACK_STOPPED) info(infoLine, 0, LV_SYMBOL_STOP);
-      else if (currentPlayStatus == ESP_AVRC_PLAYBACK_PAUSED) info(infoLine, 0, LV_SYMBOL_PAUSE);
-      else if (currentPlayStatus == ESP_AVRC_PLAYBACK_FWD_SEEK) info(infoLine, 0, LV_SYMBOL_RIGHT);
-      else if (currentPlayStatus == ESP_AVRC_PLAYBACK_REV_SEEK) info(infoLine, 0, LV_SYMBOL_LEFT);
-    } else {
-      if (currentPlayStatus == ESP_AVRC_PLAYBACK_PLAYING) info(infoLine, 0, LV_SYMBOL_PLAY " Playing");
-      else if (currentPlayStatus == ESP_AVRC_PLAYBACK_STOPPED) info(infoLine, 0, LV_SYMBOL_STOP " Stopped");
-      else if (currentPlayStatus == ESP_AVRC_PLAYBACK_PAUSED) info(infoLine, 0, LV_SYMBOL_PAUSE " Paused");
-      else if (currentPlayStatus == ESP_AVRC_PLAYBACK_FWD_SEEK) info(infoLine, 0, LV_SYMBOL_RIGHT " Fast Forward");
-      else if (currentPlayStatus == ESP_AVRC_PLAYBACK_REV_SEEK) info(infoLine, 0, LV_SYMBOL_LEFT, " Rewind");
-    }
+    updatePlayStatus();
     updatePlayButton();
   }
   else if (source == BT_SR_EVENT) {
@@ -755,6 +770,7 @@ static void bt_av_new_track(void)
                                            ESP_AVRC_RN_TRACK_CHANGE)) {
         esp_avrc_ct_send_register_notification_cmd(APP_RC_CT_TL_RN_TRACK_CHANGE, ESP_AVRC_RN_TRACK_CHANGE, 0);
     }
+    btNotify(BT_CHANGE_EVENT, 0, "");
 }
 
 //Playback changed notification ack
