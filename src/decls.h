@@ -633,6 +633,7 @@ void setMainVisibility();
 void popup(char* prompt, void(*okFunction)(void), bool animated);
 void closePopup(bool animated);
 void setBufMeter(int val);
+void showTimeBar(bool shown);
 void setTimeBar(int pct);
 void clearProgLbl();
 void printBufStat(bool wrIsRunning, int wrCodec, int wrBitrate);

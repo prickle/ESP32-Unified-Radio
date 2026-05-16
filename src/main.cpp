@@ -502,12 +502,14 @@ void showReloadBtn() {
 
 void showFullInfo() {
   int width = lv_obj_get_content_width(mainWindow);
-  lv_obj_set_size(progNameLbl, width - 20, LV_SIZE_CONTENT);
+  lv_obj_set_size(progNameLbl, width - 30, LV_SIZE_CONTENT);
   lv_obj_set_pos(progNameLbl, 10, 5);  //Align below the label
-  lv_obj_set_size(progNowLbl, width - 20, LV_SIZE_CONTENT);
+  lv_obj_set_size(progNowLbl, width - 30, LV_SIZE_CONTENT);
   lv_obj_align_to(progNowLbl, progNameLbl, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);  //Align below the label
-  lv_obj_set_size(progTextLbl, width - 20, LV_SIZE_CONTENT);
+  lv_obj_set_size(progTextLbl, width - 30, LV_SIZE_CONTENT);
   lv_obj_align_to(progTextLbl, progNowLbl, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);
+  lv_obj_set_size(progTimeBar, width - 50, 10);
+  lv_obj_align_to(progTimeBar, progNowLbl, LV_ALIGN_OUT_BOTTOM_LEFT, 20, 8);  //Align below the label
 }
 
 //Hide the spinner and reload buttons
@@ -520,6 +522,8 @@ void hideWebControls() {
   lv_obj_align_to(progNowLbl, progNameLbl, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);  //Align below the label
   lv_obj_set_size(progTextLbl, width - 108, LV_SIZE_CONTENT);
   lv_obj_align_to(progTextLbl, progNowLbl, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);
+  lv_obj_set_size(progTimeBar, width - 108, 10);
+  lv_obj_align_to(progTimeBar, progNowLbl, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 8);  //Align below the label
   lv_obj_set_hidden(loadSpinner, true);
   lv_obj_set_hidden(reloadBtn, true);
 }
@@ -532,6 +536,11 @@ void clearProgLbl() {
 
 void setBufMeter(int val) {
   if (bufLvlMeter) lv_meter_set_indicator_end_value(bufLvlMeter, bufLvlIndicator, val);
+}
+
+void showTimeBar(bool shown) {
+  //lv_obj_set_hidden(progTextLbl, shown);
+  lv_obj_set_hidden(progTimeBar, !shown);
 }
 
 void setTimeBar(int pct) {

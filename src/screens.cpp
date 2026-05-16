@@ -1600,6 +1600,7 @@ void factoryWindow_close_action(lv_event_t * event) {
 
 //=============================================================================================
 //System monitor
+#include "esp_chip_info.h"
 
 #define CPU_LABEL_COLOR     "FF7F00"
 #define MEM_LABEL_COLOR     "007FFF"

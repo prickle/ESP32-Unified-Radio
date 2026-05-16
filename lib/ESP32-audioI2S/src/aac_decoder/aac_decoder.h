@@ -487,7 +487,7 @@ void DecodeTNSInfo(int winSequence, TNSInfo_t *ti, int8_t *tnsCoef);
 void DecodeGainControlInfo(int winSequence, GainControlInfo_t *gi);
 void DecodeICS(int ch);
 int DecodeNoiselessData(uint8_t **buf, int *bitOffset, int *bitsAvail, int ch);
-int DecodeHuffmanScalar(const signed short *huffTab, const HuffInfo_t *huffTabInfo, unsigned int bitBuf, int32_t *val);
+int DecodeHuffmanScalar(const signed short *huffTab, const HuffInfo_t *huffTabInfo, unsigned int bitBuf, uint32_t *val);
 int UnpackADTSHeader(uint8_t **buf, int *bitOffset, int *bitsAvail);
 int GetADTSChannelMapping(uint8_t *buf, int bitOffset, int bitsAvail);
 int GetNumChannelsADIF(int nPCE);
@@ -557,7 +557,7 @@ int CalcCovariance1(int *XBuf, int *p01reN, int *p01imN, int *p12reN, int *p12im
 int CalcCovariance2(int *XBuf, int *p02reN, int *p02imN);
 void CalcLPCoefs(int *XBuf, int *a0re, int *a0im, int *a1re, int *a1im, int gb);
 void GenerateHighFreq(SBRGrid *sbrGrid, SBRFreq *sbrFreq, SBRChan *sbrChan, int ch);
-int DecodeHuffmanScalar(const signed int *huffTab, const HuffInfo_t *huffTabInfo, unsigned int bitBuf, signed int *val);
+//int DecodeHuffmanScalar(const signed int *huffTab, const HuffInfo_t *huffTabInfo, uint32_t bitBuf, uint32_t *val);
 int DecodeOneSymbol(int huffTabIndex);
 int DequantizeEnvelope(int nBands, int ampRes, int8_t *envQuant, int *envDequant);
 void DequantizeNoise(int nBands, int8_t *noiseQuant, int *noiseDequant);

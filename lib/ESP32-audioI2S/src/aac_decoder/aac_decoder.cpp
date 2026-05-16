@@ -3279,8 +3279,8 @@ void UnpackZeros(int nVals, int *coef)
  **********************************************************************************************************************/
 void UnpackQuads(int cb, int nVals, int *coef)
 {
-    int w, x, y, z, maxBits, nCodeBits, nSignBits, val;
-    uint32_t bitBuf;
+    int w, x, y, z, maxBits, nCodeBits, nSignBits;
+    uint32_t bitBuf, val;
 
     maxBits = huffTabSpecInfo[cb - HUFFTAB_SPEC_OFFSET].maxBits + 4;
     while (nVals > 0) {
@@ -3326,8 +3326,8 @@ void UnpackQuads(int cb, int nVals, int *coef)
  **********************************************************************************************************************/
 void UnpackPairsNoEsc(int cb, int nVals, int *coef)
 {
-    int y, z, maxBits, nCodeBits, nSignBits, val;
-    uint32_t bitBuf;
+    int y, z, maxBits, nCodeBits, nSignBits;
+    uint32_t bitBuf, val;
 
     maxBits = huffTabSpecInfo[cb - HUFFTAB_SPEC_OFFSET].maxBits + 2;
     while (nVals > 0) {
@@ -3368,8 +3368,8 @@ void UnpackPairsNoEsc(int cb, int nVals, int *coef)
  **********************************************************************************************************************/
 void UnpackPairsEsc(int cb, int nVals, int *coef)
 {
-    int y, z, maxBits, nCodeBits, nSignBits, n, val;
-    uint32_t bitBuf;
+    int y, z, maxBits, nCodeBits, nSignBits, n;
+    uint32_t bitBuf, val;
 
     maxBits = huffTabSpecInfo[cb - HUFFTAB_SPEC_OFFSET].maxBits + 2;
     while (nVals > 0) {
@@ -4171,8 +4171,8 @@ void DecodeSectionData(int winSequence, int numWinGrp, int maxSFB, uint8_t *sfbC
  **********************************************************************************************************************/
 int DecodeOneScaleFactor()
 {
-    int nBits, val;
-    uint32_t bitBuf;
+    int nBits;
+    uint32_t bitBuf, val;
 
     /* decode next scalefactor from bitstream */
     bitBuf = GetBitsNoAdvance(huffTabScaleFactInfo.maxBits) << (32 - huffTabScaleFactInfo.maxBits);
@@ -4488,7 +4488,7 @@ int DecodeNoiselessData(uint8_t **buf, int *bitOffset, int *bitsAvail, int ch)
  *                if there are no codes at nBits, then we just keep << 1 each time
  *                  (since count[nBits] = 0)
  **********************************************************************************************************************/
-int DecodeHuffmanScalar(const signed short *huffTab, const HuffInfo_t *huffTabInfo, uint32_t bitBuf, int32_t *val)
+int DecodeHuffmanScalar(const signed short *huffTab, const HuffInfo_t *huffTabInfo, unsigned int bitBuf, uint32_t *val)
 {
     uint32_t count, start, shift, t;
     const uint8_t *countPtr;
@@ -5310,7 +5310,7 @@ void GenerateNoiseVector(int *coef, int *last, int nVals)
     int i;
 
     for (i = 0; i < nVals; i++)
-        coef[i] = ((int32_t)Get32BitVal((uint32_t *)last)) >> 16;
+        coef[i] = ((int32_t)Get32BitVal((unsigned int*)last)) >> 16;
 }
 
 /***********************************************************************************************************************
@@ -8501,7 +8501,7 @@ void GenerateHighFreq(SBRGrid *sbrGrid, SBRFreq *sbrFreq, SBRChan *sbrChan, int 
  *                  (since count[nBits] = 0)
  **********************************************************************************************************************/
 int DecodeHuffmanScalar(const signed int *huffTab, const HuffInfo_t *huffTabInfo, unsigned int bitBuf,
-        signed int *val) {
+        uint32_t *val) {
 
     unsigned int count, start, shift, t;
     const uint8_t *countPtr;
@@ -8539,7 +8539,8 @@ int DecodeHuffmanScalar(const signed int *huffTab, const HuffInfo_t *huffTabInfo
  **********************************************************************************************************************/
 int DecodeOneSymbol(int huffTabIndex) {
 
-    int nBits, val;
+    int nBits;
+    uint32_t val;
     unsigned int bitBuf;
     const HuffInfo_t *hi;
 

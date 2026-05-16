@@ -23,6 +23,9 @@ int currentSampleRate = 0;
 bool currentConnectionState = false;
 volatile bool currentStackState = false;
 bool gotMetadata = false;
+uint32_t trackLength = 0;
+uint32_t currentPlayPosition = 0;
+bool showingTimeBar = false;
 const char * rName = NULL;
 esp_bd_addr_t peerAddress = {0};
 
@@ -305,6 +308,19 @@ static void passcodeKeyboard_action(lv_event_t * event) {
   }
 }
 
+void updateTimeBar() {
+  bool show = (trackLength > 0) && (currentPlayPosition > 0);
+  if (show != showingTimeBar) {
+    showingTimeBar = show;
+    showTimeBar(show);
+  }
+  if (show) {
+    uint8_t pct = (currentPlayPosition * 100.0) / trackLength;
+    if (pct > 100) pct = 100;
+    setTimeBar(pct);
+  }
+}
+
 //------------------------------------------------------------------
 //Bluetooth events
 //From main thread context
@@ -368,17 +384,28 @@ void bluetoothMessage(uint32_t source, uint32_t val, const char* txt) {
     gotMetadata = true;
     if (val == ESP_AVRC_MD_ATTR_TITLE) audio_showstreamtitle(txt);
     else if (val == ESP_AVRC_MD_ATTR_ARTIST) audio_showstation(txt);
-    //serial.printf(">: %d: %s\r\n", val, txt);
+    else if (val == ESP_AVRC_MD_ATTR_PLAYING_TIME) {
+      trackLength = atoi(txt);
+      updateTimeBar();
+    }
   }
   else if (source == BT_STATE_EVENT) {
     currentPlayStatus = val;
     uint8_t infoLine = NAME;
     if (gotMetadata) infoLine = TEXT;
-    if (currentPlayStatus == ESP_AVRC_PLAYBACK_PLAYING) info(infoLine, 0, LV_SYMBOL_PLAY " Playing");
-    else if (currentPlayStatus == ESP_AVRC_PLAYBACK_STOPPED) info(infoLine, 0, LV_SYMBOL_STOP " Stopped");
-    else if (currentPlayStatus == ESP_AVRC_PLAYBACK_PAUSED) info(infoLine, 0, LV_SYMBOL_PAUSE " Paused");
-    else if (currentPlayStatus == ESP_AVRC_PLAYBACK_FWD_SEEK) info(infoLine, 0, LV_SYMBOL_RIGHT " Fast Forward");
-    else if (currentPlayStatus == ESP_AVRC_PLAYBACK_REV_SEEK) info(infoLine, 0, LV_SYMBOL_LEFT, " Rewind");
+    if (showingTimeBar) {
+      if (currentPlayStatus == ESP_AVRC_PLAYBACK_PLAYING) info(infoLine, 0, LV_SYMBOL_PLAY);
+      else if (currentPlayStatus == ESP_AVRC_PLAYBACK_STOPPED) info(infoLine, 0, LV_SYMBOL_STOP);
+      else if (currentPlayStatus == ESP_AVRC_PLAYBACK_PAUSED) info(infoLine, 0, LV_SYMBOL_PAUSE);
+      else if (currentPlayStatus == ESP_AVRC_PLAYBACK_FWD_SEEK) info(infoLine, 0, LV_SYMBOL_RIGHT);
+      else if (currentPlayStatus == ESP_AVRC_PLAYBACK_REV_SEEK) info(infoLine, 0, LV_SYMBOL_LEFT);
+    } else {
+      if (currentPlayStatus == ESP_AVRC_PLAYBACK_PLAYING) info(infoLine, 0, LV_SYMBOL_PLAY " Playing");
+      else if (currentPlayStatus == ESP_AVRC_PLAYBACK_STOPPED) info(infoLine, 0, LV_SYMBOL_STOP " Stopped");
+      else if (currentPlayStatus == ESP_AVRC_PLAYBACK_PAUSED) info(infoLine, 0, LV_SYMBOL_PAUSE " Paused");
+      else if (currentPlayStatus == ESP_AVRC_PLAYBACK_FWD_SEEK) info(infoLine, 0, LV_SYMBOL_RIGHT " Fast Forward");
+      else if (currentPlayStatus == ESP_AVRC_PLAYBACK_REV_SEEK) info(infoLine, 0, LV_SYMBOL_LEFT, " Rewind");
+    }
     updatePlayButton();
   }
   else if (source == BT_SR_EVENT) {
@@ -389,7 +416,8 @@ void bluetoothMessage(uint32_t source, uint32_t val, const char* txt) {
     updateSTMOLabel(val == 1 ? STMO_MONO : STMO_STEREO);    
   }
   else if (source == BT_POS_EVENT) {
-    //Not using this right now
+    currentPlayPosition = val;
+    updateTimeBar();
   }
   else if (source == BT_RSSI_EVENT) {
     if (val > 128) val = 128;
@@ -620,6 +648,7 @@ void BTpassthrough(uint8_t code, uint8_t state) {
   }
 }
 
+//Send passcode
 void BTauthorise(uint32_t code, bool accept) {
   if (esp_bt_gap_ssp_passkey_reply(peerAddress, accept, code) != ESP_OK) {
     log_e("esp_bt_gap_ssp_passkey_reply");
@@ -636,6 +665,7 @@ bool BTupdateRssi() {
   return rssiActive;
 }
 
+//Connect to specific peer
 bool BTconnect(esp_bd_addr_t peer) {
   esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
   esp_err_t err = esp_a2d_sink_connect(peer);
@@ -645,6 +675,7 @@ bool BTconnect(esp_bd_addr_t peer) {
   return err == ESP_OK;
 }
 
+//Disconnect from peer
 bool BTdisconnect(esp_bd_addr_t peer) {
   esp_err_t status = esp_a2d_sink_disconnect(peer);
   if (status == ESP_FAIL) {
@@ -654,7 +685,7 @@ bool BTdisconnect(esp_bd_addr_t peer) {
 }
 
 //--------------------------------------------------------
-// Callbacks
+// BT Callbacks
 
 //BT Generic Access Profile
 void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param) {
@@ -716,7 +747,7 @@ void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param) {
 static void bt_av_new_track(void)
 {
     // request metadata
-    uint8_t attr_mask = ESP_AVRC_MD_ATTR_TITLE | ESP_AVRC_MD_ATTR_ARTIST | ESP_AVRC_MD_ATTR_ALBUM | ESP_AVRC_MD_ATTR_GENRE;
+    uint8_t attr_mask = ESP_AVRC_MD_ATTR_TITLE | ESP_AVRC_MD_ATTR_ARTIST | ESP_AVRC_MD_ATTR_ALBUM | ESP_AVRC_MD_ATTR_PLAYING_TIME;
     esp_avrc_ct_send_metadata_cmd(APP_RC_CT_TL_GET_META_DATA, attr_mask);
 
     // register notification if peer support the event_id
@@ -740,7 +771,7 @@ static void bt_av_play_pos_changed(void)
 {
     if (esp_avrc_rn_evt_bit_mask_operation(ESP_AVRC_BIT_MASK_OP_TEST, &s_avrc_peer_rn_cap,
                                            ESP_AVRC_RN_PLAY_POS_CHANGED)) {
-        esp_avrc_ct_send_register_notification_cmd(APP_RC_CT_TL_RN_PLAY_POS_CHANGE, ESP_AVRC_RN_PLAY_POS_CHANGED, 10);
+        esp_avrc_ct_send_register_notification_cmd(APP_RC_CT_TL_RN_PLAY_POS_CHANGE, ESP_AVRC_RN_PLAY_POS_CHANGED, 1);
     }
 }
 
@@ -926,232 +957,6 @@ void bt_data_cb(const uint8_t *data, uint32_t len){
     
   }
 }
-/*
-//-------------------------------------------------------------------------------------
-// Cover art
 
-// @brief AVRCP cover art service control block structure
-typedef struct {
-    bool connected;                          // Connection status flag 
-    bool getting;                            // Flag indicating if image is being retrieved 
-    // Related to the image 
-    uint8_t image_hdl_old[7];                // Previous image handle, used to detect image changes 
-    uint32_t image_size;                     // Size of the image data in bytes 
-    uint8_t *image_data;                     // Pointer to the image data buffer 
-    bool image_final;                        // Indicate whether the image reception has been completed 
-} avrc_ca_service_cb_t;
-
-static bool avrc_ca_handleCheck(uint8_t *image_handle, int len);
-static void avrc_ca_freeImageData(void);
-
-// avrcp cover art service control block
-static avrc_ca_service_cb_t avrc_ca_serviceControlBlock;
-
-static void avrc_ca_freeImageData(void)
-{
-    if (avrc_ca_serviceControlBlock.image_data) {
-        free(avrc_ca_serviceControlBlock.image_data);
-        avrc_ca_serviceControlBlock.image_data = NULL;
-    }
-    avrc_ca_serviceControlBlock.image_size = 0;
-}
-
-static void avrc_ca_imageReady(void)
-{
-    Serial.println("> BT JPEG image ready.");
-
-}
-
-void avrc_ca_open(void)
-{
-    memset(&avrc_ca_serviceControlBlock, 0, sizeof(avrc_ca_service_cb_t));
-}
-
-void avrc_ca_close(void)
-{
-    avrc_ca_freeImageData();
-    memset(&avrc_ca_serviceControlBlock, 0, sizeof(avrc_ca_service_cb_t));
-}
-
-bool btc_avrc_ct_check_cover_art_support(void)
-{
-    return (btRemoteFeaturesFlag & ESP_AVRC_FEAT_FLAG_TG_COVER_ART);
-}
-
-
-esp_err_t esp_avrc_ct_cover_art_connect(uint16_t mtu)
-{
-    if (esp_bluedroid_get_status() != ESP_BLUEDROID_STATUS_ENABLED){
-        return ESP_ERR_INVALID_STATE;
-    }
-
-    if (!btc_avrc_ct_check_cover_art_support()) {
-        return ESP_ERR_NOT_SUPPORTED;
-    }
-
-    btc_msg_t msg;
-    msg.sig = BTC_SIG_API_CALL;
-    msg.pid = BTC_PID_AVRC_CT;
-    msg.act = BTC_AVRC_CT_API_COVER_ART_CONNECT_EVT;
-
-    btc_avrc_args_t arg;
-    memset(&arg, 0, sizeof(btc_avrc_args_t));
-    arg.ca_conn.mtu = mtu;
-
-    // Switch to BTC context 
-    bt_status_t stat = btc_transfer_context(&msg, &arg, sizeof(btc_avrc_args_t), NULL, NULL);
-    return (stat == BT_STATUS_SUCCESS) ? ESP_OK : ESP_FAIL;
-}
-
-esp_err_t esp_avrc_ct_cover_art_disconnect(void)
-{
-    if (esp_bluedroid_get_status() != ESP_BLUEDROID_STATUS_ENABLED) {
-        return ESP_ERR_INVALID_STATE;
-    }
-
-    if (!btc_avrc_ct_check_cover_art_support()) {
-        return ESP_ERR_NOT_SUPPORTED;
-    }
-
-    btc_msg_t msg;
-    msg.sig = BTC_SIG_API_CALL;
-    msg.pid = BTC_PID_AVRC_CT;
-    msg.act = BTC_AVRC_CT_API_COVER_ART_DISCONNECT_EVT;
-
-    // Switch to BTC context
-    bt_status_t stat = btc_transfer_context(&msg, NULL, 0, NULL, NULL);
-    return (stat == BT_STATUS_SUCCESS) ? ESP_OK : ESP_FAIL;
-}
-
-esp_err_t esp_avrc_ct_cover_art_get_image_properties(uint8_t *image_handle)
-{
-    if ((esp_bluedroid_get_status() != ESP_BLUEDROID_STATUS_ENABLED) ||
-        (!btc_avrc_ct_connected_p())) {
-        return ESP_ERR_INVALID_STATE;
-    }
-
-    if (!btc_avrc_ct_check_cover_art_support()) {
-        return ESP_ERR_NOT_SUPPORTED;
-    }
-
-    if (image_handle == NULL) {
-        return ESP_ERR_INVALID_ARG;
-    }
-
-    btc_msg_t msg;
-    msg.sig = BTC_SIG_API_CALL;
-    msg.pid = BTC_PID_AVRC_CT;
-    msg.act = BTC_AVRC_CT_API_COVER_ART_GET_IMAGE_PROPERTIES_EVT;
-
-    btc_avrc_args_t arg;
-    memset(&arg, 0, sizeof(btc_avrc_args_t));
-    memcpy(arg.ca_get_img_prop.image_handle, image_handle, ESP_AVRC_CA_IMAGE_HANDLE_LEN);
-
-    // Switch to BTC context
-    bt_status_t stat = btc_transfer_context(&msg, &arg, sizeof(btc_avrc_args_t), NULL, NULL);
-    return (stat == BT_STATUS_SUCCESS) ? ESP_OK : ESP_FAIL;
-}
-
-esp_err_t esp_avrc_ct_cover_art_get_image(uint8_t *image_handle, uint8_t *image_descriptor, uint16_t image_descriptor_len)
-{
-    if ((esp_bluedroid_get_status() != ESP_BLUEDROID_STATUS_ENABLED) ||
-        (!btc_avrc_ct_connected_p())) {
-        return ESP_ERR_INVALID_STATE;
-    }
-
-    if (!btc_avrc_ct_check_cover_art_support()) {
-        return ESP_ERR_NOT_SUPPORTED;
-    }
-
-    if (image_handle == NULL || image_descriptor == NULL || image_descriptor_len == 0) {
-        return ESP_ERR_INVALID_ARG;
-    }
-
-    btc_msg_t msg;
-    msg.sig = BTC_SIG_API_CALL;
-    msg.pid = BTC_PID_AVRC_CT;
-    msg.act = BTC_AVRC_CT_API_COVER_ART_GET_IMAGE_EVT;
-
-    btc_avrc_args_t arg;
-    memset(&arg, 0, sizeof(btc_avrc_args_t));
-
-    memcpy(arg.ca_get_img.image_handle, image_handle, ESP_AVRC_CA_IMAGE_HANDLE_LEN);
-    arg.ca_get_img.image_descriptor_len = image_descriptor_len;
-    arg.ca_get_img.image_descriptor = image_descriptor;
-
-    // Switch to BTC context
-    bt_status_t stat = btc_transfer_context(&msg, &arg, sizeof(btc_avrc_args_t), btc_avrc_arg_deep_copy, btc_avrc_arg_deep_free);
-    return (stat == BT_STATUS_SUCCESS) ? ESP_OK : ESP_FAIL;
-}
-
-
-
-void avrc_cover_art_srv_connect(uint16_t mtu)
-{
-    if (!avrc_ca_serviceControlBlock.connected) {
-        serial.println("> BT Start cover art connection...");
-        // start the cover art connection
-        esp_avrc_ct_cover_art_connect(mtu);
-    }
-}
-
-void avrc_cover_art_srv_set_image_final(bool final)
-{
-    s_avrc_cover_art_srv_cb.image_final = final;
-    if (s_avrc_cover_art_srv_cb.image_final) {
-        ESP_LOGI(RC_CA_SRV_TAG, "Cover Art Client final data event, image size: %lu bytes", s_avrc_cover_art_srv_cb.image_size);
-
-        // decode and display the image 
-        avrc_cover_art_srv_decode_image();
-        // display the image 
-        avrc_cover_art_srv_display_image();
-        // set the getting state to false, we can get next image now 
-        s_avrc_cover_art_srv_cb.getting = false;
-    }
-}
-
-void avrc_cover_art_srv_set_connected(bool connected)
-{
-    s_avrc_cover_art_srv_cb.connected = connected;
-}
-
-void avrc_cover_art_srv_ca_req(void)
-{
-    // request cover art 
-    if (s_avrc_cover_art_srv_cb.connected) {
-        uint8_t attr_mask = ESP_AVRC_MD_ATTR_COVER_ART;
-
-        esp_avrc_ct_send_metadata_cmd(bt_avrc_common_alloc_tl(), attr_mask);
-    }
-}
-
-void avrc_cover_art_srv_save_image_data(uint8_t *p_data, uint16_t data_len)
-{
-    s_avrc_cover_art_srv_cb.image_size += data_len;
-
-    uint8_t *p_buf = (uint8_t *)realloc(s_avrc_cover_art_srv_cb.image_data, s_avrc_cover_art_srv_cb.image_size * sizeof(uint8_t));
-    if (!p_buf) {
-        ESP_LOGE(RC_CA_SRV_TAG, "%s: The memory allocation of Cover art image data failed", __func__);
-        avrc_cover_art_srv_free_image_data();
-        return;
-    }
-    s_avrc_cover_art_srv_cb.image_data = p_buf;
-    memcpy(s_avrc_cover_art_srv_cb.image_data + s_avrc_cover_art_srv_cb.image_size - data_len, p_data, data_len);
-}
-
-void avrc_cover_art_srv_ct_metadata_update(uint8_t *image_handle, int len)
-{
-    if (s_avrc_cover_art_srv_cb.connected && !s_avrc_cover_art_srv_cb.getting) {
-        // check image handle is valid and different with last one, we don't want to get an image repeatedly 
-        if (avrc_cover_art_srv_image_handle_check(image_handle, len)) {
-            // free the previous image data 
-            avrc_cover_art_srv_free_image_data();
-            // get the linked thumbnail 
-            esp_avrc_ct_cover_art_get_linked_thumbnail(image_handle);
-            s_avrc_cover_art_srv_cb.getting = true;
-        }
-    }
-}
-*/
 
 #endif
