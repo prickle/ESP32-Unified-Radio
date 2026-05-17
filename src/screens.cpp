@@ -725,6 +725,7 @@ void setRadioMode(int mode) {
     wlanConnect();
 #endif
     readPodcasts();
+    if (!RTCSet) NTPUpdate();   //Need correct time for API
     info(NAME, 0, LV_SYMBOL_STOP " Stopped");
     info(NOW, 0, LV_SYMBOL_LEFT " Choose podcasts from the list to the left.. ");
   }
