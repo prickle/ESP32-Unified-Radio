@@ -435,23 +435,27 @@ bool Audio::connecttohost(const char* host, const char* user, const char* pwd, b
     m_metadata = metadata;  //Save metadata flag for redirects
 
     if(strlen(host) == 0) {
-        if(audio_info) audio_info("Hostaddress is empty");
+        log_e("Hostaddress is empty");
         return false;
     }
 
     if(strlen(host) >= 4096 - 10) {
-        if(audio_info) audio_info("Hostaddress is too long");
+        log_e("Hostaddress is too long, len:%d", strlen(host));
         return false;
     }
 
     if (m_f_psram) l_host = (char*)ps_malloc(strlen(host) + 10);        //Nick Metcalfe 2/24 - save memory
     else l_host = (char*)malloc(strlen(host) + 10);
+    if(!l_host) {
+        log_e("Out of memory");
+        return false;
+    }
 
     strcpy(l_host, host);
     trim(l_host);
     int p = indexOf(l_host, "http", 0);
     if(p > 0){
-        if(audio_info) audio_info("Hostaddress is wrong");
+        if(audio_info) log_e("Hostaddress is wrong");
         if(l_host) { free(l_host); l_host = NULL;}
         return false;
     }
@@ -3471,31 +3475,10 @@ void Audio::processAudioHeaderData() {
         }
     }
 
-    if(indexOf(hl, "HTTP/1.0 404", 0) >= 0) {
+    if(strlen(hl) > 10 && indexOf(hl, "HTTP/1.", 0) == 0 && (hl[9] == '4' || hl[9] == '5')) {
         m_f_running = false;
+        if(audio_info) audio_info(hl);
         stopSong();
-        if(audio_info) audio_info("404 Not Found");
-        return;
-    }
-
-    if(indexOf(hl, "HTTP/1.1 404", 0) >= 0) {
-        m_f_running = false;
-        stopSong();
-        if(audio_info) audio_info("404 Not Found");
-        return;
-    }
-
-    if(indexOf(hl, "HTTP/1.0 403", 0) >= 0) {
-        m_f_running = false;
-        stopSong();
-        if(audio_info) audio_info("403 Forbidden");
-        return;
-    }
-
-    if(indexOf(hl, "HTTP/1.1 403", 0) >= 0) {
-        m_f_running = false;
-        stopSong();
-        if(audio_info) audio_info("403 Forbidden");
         return;
     }
 

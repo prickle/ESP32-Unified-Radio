@@ -182,6 +182,14 @@ void savePreset(uint16_t index) {
     snprintf(settings->presets[index].name, 34, "SW %d", settings->freqSW);
   }
 #endif
+#ifdef BLUETOOTH
+  else if (settings->mode == MODE_BT) {
+    if (isBtConnected()) {
+      snprintf(settings->presets[index].name, 34, "%.27s", getBtPeerName());
+      memcpy(&(settings->presets[index].name[28]), getBtPeerAddress(), ESP_BD_ADDR_LEN);
+    }
+  }
+#endif
   else return;  
   serial.printf("> Save preset %d as %s: %s\r\n", index, modeString[settings->mode], name);
   writeSettings();
@@ -219,19 +227,32 @@ void loadPreset(uint16_t index) {
   uint8_t mode = settings->presets[index].mode;
   char * data = settings->presets[index].name;
   serial.printf("> Load preset %d [%s]: %s\r\n", index, modeString[mode], data);
+  //Webradio or Podcasts
   if (mode == MODE_WEB || mode == MODE_POD) {
     strncpy(searchStationName, data, 34);
     searchStationName[34] = '\0';
   }
+  //DAB
 #ifdef MONKEYBOARD
   else if (mode == MODE_DAB) strncpy(settings->dabChannel, data, 34);
   else if (mode == MODE_FM) settings->dabFM = atof(strrchr(data, ' ')+1) * 1000.0;
 #endif
 #ifdef NXP6686
+  //Radio
   else if (mode == MODE_NFM) settings->dabFM = atof(strrchr(data, ' ')+1) * 1000.0;
   else if (mode == MODE_NMW) settings->freqMW = atof(strrchr(data, ' ')+1);
   else if (mode == MODE_NLW) settings->freqLW = atof(strrchr(data, ' ')+1);
   else if (mode == MODE_NSW) settings->freqSW = atof(strrchr(data, ' ')+1);
+#endif
+  //Bluetooth
+#ifdef BLUETOOTH
+  else if (settings->mode == MODE_BT) {
+    if (isBtStarted()) {
+      esp_bd_addr_t addr = {};
+      memcpy(addr, &(settings->presets[index].name[28]), ESP_BD_ADDR_LEN);
+      connectBluetooth(addr);     
+    }
+  }
 #endif
   else return;
   tabViewShowMain();

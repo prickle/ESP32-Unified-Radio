@@ -418,7 +418,7 @@ void setMainVisibility() {
   lv_obj_set_hidden(progTextLbl, settings->mode == MODE_SD || settings->mode == MODE_FTP || settings->mode == MODE_POD || settings->mode == MODE_DLNA);  
 #else
   lv_obj_set_hidden(bufLvlMeter, settings->mode != MODE_WEB && settings->mode != MODE_FTP && settings->mode != MODE_POD && settings->mode != MODE_DLNA);
-  lv_obj_set_hidden(bufStatLbl, settings->mode != MODE_WEB && settings->mode != MODE_FTP && settings->mode != MODE_POD && settings->mode != MODE_DLNA && settings->mode != MODE_BT);
+  lv_obj_set_hidden(bufStatLbl, settings->mode != MODE_WEB && settings->mode != MODE_FTP && settings->mode != MODE_POD && settings->mode != MODE_DLNA);
   lv_obj_set_hidden(progTimeBar, settings->mode != MODE_FTP && settings->mode != MODE_POD && settings->mode != MODE_DLNA);  
   lv_obj_set_hidden(progTextLbl, settings->mode == MODE_FTP || settings->mode == MODE_POD || settings->mode == MODE_DLNA);  
 #endif

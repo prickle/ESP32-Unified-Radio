@@ -1134,10 +1134,12 @@ void wifiScanComplete() {
 //-----------------------------------------------------------------------
 // Bluetooth Container actions
 
+#ifdef BLUETOOTH
 void restartBluetooth() {
   stopBluetooth();
   startBluetooth();
 }
+#endif
 
 void btSetEditText() {
   char buf[20];
@@ -1155,7 +1157,9 @@ void pinBtAction(lv_event_t * event) {
   lv_obj_t * obj = lv_event_get_target(event);
   settings->pinreqBt = lv_btnmatrix_get_selected_btn(obj);
   writeSettings();
+#ifdef BLUETOOTH
   if (isBtStarted()) restartBluetooth();
+#endif
 }
 
 void keyboardPinBtKeyAction(lv_event_t * event) {
@@ -1173,7 +1177,9 @@ void keyboardPinBtKeyAction(lv_event_t * event) {
         memcpy(settings->pincodeBt, pin, 4);
         writeSettings();
         btSetEditText();
+#ifdef BLUETOOTH
         if (isBtStarted()) restartBluetooth();
+#endif
       } else btSetEditText();
     }
     else if (res == LV_EVENT_CANCEL){

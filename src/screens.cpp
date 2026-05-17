@@ -6,6 +6,7 @@ bool tabViewScrolling = false;
 uint8_t MODE_UNKNOWN, MODE_DAB, MODE_FM, MODE_FTP, MODE_WEB, MODE_SD, MODE_POD, MODE_DLNA, MODE_LINE, MODE_BT,
         MODE_NLW, MODE_NMW, MODE_NSW, MODE_NFM;
 const char * modeString[14];
+const char * modeIcon[14];
 int totalModes;
 char modeListLine[256];
 uint8_t mainWindowIndex = 2;
@@ -16,67 +17,81 @@ void setupModes() {
   //Mode 0 is reserved to catch null mode errors
   char* list = modeListLine;
   modeString[totalModes] = "Unknown";
+  modeIcon[totalModes] = "?";
   MODE_UNKNOWN = totalModes++;
 #ifdef MONKEYBOARD
   //DAB+ Radio on monkeyboard module
   list = strcat(list, LV_SYMBOL_PLUS " DAB Radio\n");
   modeString[totalModes] = "DAB+";
+  modeIcon[totalModes] = LV_SYMBOL_PLUS;
   MODE_DAB = totalModes++;
   //FM radio from monkeyboard
   list = strcat(list, LV_SYMBOL_AUDIO " Digital FM\n");
   modeString[totalModes] = "Digital FM";
+  modeIcon[totalModes] = LV_SYMBOL_AUDIO;
   MODE_FM = totalModes++;
 #endif
 #ifdef NXP6686
   //AM radio from NXP6686
   list = strcat(list, LV_SYMBOL_AUDIO " AM Radio\n");
   modeString[totalModes] = "AM Radio";
+  modeIcon[totalModes] = LV_SYMBOL_AUDIO;
   MODE_NMW = totalModes++;
   //FM radio from NXP6686
   list = strcat(list, LV_SYMBOL_AUDIO " FM Radio\n");
   modeString[totalModes] = "FM Radio";
+  modeIcon[totalModes] = LV_SYMBOL_AUDIO;
   MODE_NFM = totalModes++;
   //SW radio from NXP6686
   list = strcat(list, LV_SYMBOL_AUDIO " Shortwave\n");
   modeString[totalModes] = "Shortwave Radio";
+  modeIcon[totalModes] = LV_SYMBOL_AUDIO;
   MODE_NSW = totalModes++;
   //LW radio from NXP6686
   list = strcat(list, LV_SYMBOL_AUDIO " Longwave\n");
   modeString[totalModes] = "Longwave Radio";
+  modeIcon[totalModes] = LV_SYMBOL_AUDIO;
   MODE_NLW = totalModes++;
 #endif
   //Web radio
   list = strcat(list, LV_SYMBOL_BROADCAST " Web Radio\n");
   modeString[totalModes] = "Web Radio";
+  modeIcon[totalModes] = LV_SYMBOL_BROADCAST;
   MODE_WEB = totalModes++;
   //Local FTP streaming
   list = strcat(list, LV_SYMBOL_DOWNLOAD " Local FTP\n");
+  modeIcon[totalModes] = LV_SYMBOL_DOWNLOAD;
   modeString[totalModes] = "Local FTP";
   MODE_FTP = totalModes++;
 #ifdef SDPLAYER
   //SD Card file player
   list = strcat(list, LV_SYMBOL_SD_CARD " SD Card\n");
   modeString[totalModes] = "SD Card";
+  modeIcon[totalModes] = LV_SYMBOL_SD_CARD;
   MODE_SD = totalModes++;
 #endif
   //Podcast client
   list = strcat(list, LV_SYMBOL_BULLHORN "  Podcasts\n");
   modeString[totalModes] = "Podcast";
+  modeIcon[totalModes] = LV_SYMBOL_BULLHORN;
   MODE_POD = totalModes++;
   //DLNA Client
   list = strcat(list, LV_SYMBOL_DRIVE " Media Svr");
   modeString[totalModes] = "Media Server";
+  modeIcon[totalModes] = LV_SYMBOL_DRIVE;
   MODE_DLNA = totalModes++;
 #ifdef LINEIN
   //Line in function
   list = strcat(list, "\n" LV_SYMBOL_AUDIO " Line In");
   modeString[totalModes] = "Line In";
+  modeIcon[totalModes] = LV_SYMBOL_AUDIO;
   MODE_LINE = totalModes++;
 #endif
 #ifdef BLUETOOTH
   //Bluetooth sink
   list = strcat(list, "\n" LV_SYMBOL_BLUETOOTH " Bluetooth");
   modeString[totalModes] = "Bluetooth";
+  modeIcon[totalModes] = LV_SYMBOL_BLUETOOTH;
   MODE_BT = totalModes++;
 #endif
   serial.printf("> Configured %d modes.\r\n", totalModes - 1);
@@ -1059,7 +1074,7 @@ void createTerminalWindow(lv_obj_t *win) {
   lv_obj_update_layout(win);
   lv_obj_set_pos(termDropdown, lv_obj_get_content_width(win) - 50, 0);
   lv_obj_set_size(termDropdown, 48, 22);
-  //lv_obj_add_flag(termDropdown, LV_OBJ_FLAG_FLOATING);
+  lv_obj_add_flag(termDropdown, LV_OBJ_FLAG_FLOATING);
   lv_obj_set_style_bg_color(termDropdown, lv_color_black(), LV_PART_MAIN);
   lv_obj_set_style_border_width(termDropdown, 1, LV_PART_MAIN);
   lv_obj_set_style_border_color(termDropdown, lv_color_hex(0x303030), LV_PART_MAIN);

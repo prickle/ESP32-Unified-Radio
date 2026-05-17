@@ -174,6 +174,14 @@ bool isBtStarted() {
   return currentStackState;
 }
 
+const char* getBtPeerName() {
+  return rName;
+}
+
+esp_bd_addr_t* getBtPeerAddress() {
+  return &peerAddress;
+}
+
 //------------------------------------------------------------------------------------
 // Passcode window - action required
 
@@ -308,19 +316,6 @@ static void passcodeKeyboard_action(lv_event_t * event) {
   }
 }
 
-void updateTimeBar() {
-  bool show = (trackLength > 0) && (currentPlayPosition > 0);
-  if (show != showingTimeBar) {
-    showingTimeBar = show;
-    showTimeBar(show);
-  }
-  if (show) {
-    uint8_t pct = (currentPlayPosition * 100.0) / trackLength;
-    if (pct > 100) pct = 100;
-    setTimeBar(pct);
-  }
-}
-
 void updatePlayStatus() {
   uint8_t infoLine = NAME;
   if (gotMetadata) infoLine = TEXT;
@@ -336,6 +331,20 @@ void updatePlayStatus() {
     else if (currentPlayStatus == ESP_AVRC_PLAYBACK_PAUSED) info(infoLine, 0, LV_SYMBOL_PAUSE " Paused");
     else if (currentPlayStatus == ESP_AVRC_PLAYBACK_FWD_SEEK) info(infoLine, 0, LV_SYMBOL_RIGHT " Fast Forward");
     else if (currentPlayStatus == ESP_AVRC_PLAYBACK_REV_SEEK) info(infoLine, 0, LV_SYMBOL_LEFT, " Rewind");
+  }
+}
+
+void updateTimeBar() {
+  bool show = (trackLength > 0) && (currentPlayPosition > 0);
+  if (show != showingTimeBar) {
+    showingTimeBar = show;
+    showTimeBar(show);
+    updatePlayStatus();
+  }
+  if (show) {
+    uint8_t pct = (currentPlayPosition * 100.0) / trackLength;
+    if (pct > 100) pct = 100;
+    setTimeBar(pct);
   }
 }
 
@@ -408,15 +417,13 @@ void bluetoothMessage(uint32_t source, uint32_t val, const char* txt) {
       trackLength = atoi(txt);
       updateTimeBar();
     }
-    updatePlayStatus();
   }
   else if (source == BT_CHANGE_EVENT) {
     gotMetadata = false;
-    info(TEXT, 0, LV_SYMBOL_STOP " Stopped");
     info(NAME, 0, "");
+    info(NOW, 0, "");
     trackLength = 0;
     updateTimeBar();
-    updatePlayStatus();
   }
   else if (source == BT_STATE_EVENT) {
     currentPlayStatus = val;
@@ -682,21 +689,21 @@ bool BTupdateRssi() {
 
 //Connect to specific peer
 bool BTconnect(esp_bd_addr_t peer) {
+  BTdisconnect();   //if required
   esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
   esp_err_t err = esp_a2d_sink_connect(peer);
-  if (err != ESP_OK) {
-    log_e("esp_a2d_sink_connect:%d", err);
-  }
+  if (err != ESP_OK) log_e("esp_a2d_sink_connect:%d", err);
   return err == ESP_OK;
 }
 
 //Disconnect from peer
-bool BTdisconnect(esp_bd_addr_t peer) {
-  esp_err_t status = esp_a2d_sink_disconnect(peer);
-  if (status == ESP_FAIL) {
-    log_e("esp_a2d_sink_disconnect:%d", status);
+bool BTdisconnect() {
+  if (btConnected) {
+    esp_err_t status = esp_a2d_sink_disconnect(peerAddress);
+    if (status == ESP_FAIL) log_e("esp_a2d_sink_disconnect:%d", status);
+    return status == ESP_OK;
   }
-  return status == ESP_OK;
+  return true;
 }
 
 //--------------------------------------------------------

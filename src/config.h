@@ -222,6 +222,7 @@ extern lv_obj_t * mainContainer;
 //settings->mode
 extern uint8_t MODE_UNKNOWN, MODE_DAB, MODE_FM, MODE_FTP, MODE_WEB, MODE_SD, MODE_POD, MODE_DLNA, MODE_LINE, MODE_BT, MODE_NLW, MODE_NMW, MODE_NSW, MODE_NFM;
 extern const char * modeString[14];
+extern const char * modeIcon[14];
 extern int totalModes;
 
 //Stereo / Mono

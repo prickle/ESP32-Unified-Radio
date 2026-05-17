@@ -34,8 +34,8 @@ bool wrBtStarted = false;
 //Webradio commands
 enum : uint8_t { WR_START, WR_SETVOLUME, WR_GETVOLUME, WR_CONNECTTOHOST, WR_CONNECTTOFS, WR_STOPSONG, 
                  WR_META, WR_CONNECTING, WR_SETTONE, WR_STATS, WR_TITLE, WR_STATION, WR_ICYURL, WR_DELETE, 
-                 WR_VU, WR_EOF, WR_EMBED, WR_RESPONSE, WR_MONO, WR_SRATE, WR_SETWIDE, 
-                 WR_BTSTART, WR_BTSTOP, WR_BTMSG, WR_BTVOL, WR_BTPASS, WR_BTRSSI, WR_BTAUTH };
+                 WR_VU, WR_EOF, WR_EMBED, WR_RESPONSE, WR_MONO, WR_SRATE, WR_SETWIDE, WR_PRINT, WR_PRINTLN,  
+                 WR_BTSTART, WR_BTSTOP, WR_BTMSG, WR_BTVOL, WR_BTPASS, WR_BTRSSI, WR_BTAUTH, WR_BTCONN };
 
 //Webradio message
 struct audioMessage{
@@ -144,7 +144,6 @@ void setVolume(uint8_t volume) {
 
 void notifyVolumeChange(uint8_t volume) {
   if (!audioSetQueue) return;
-  Serial.printf("notifyVolumeChange: (%d)\r\n", volume);
   audioTxMessage.cmd = WR_BTVOL;
   audioTxMessage.value1 = volume;
   xQueueSend(audioSetQueue, &audioTxMessage, 0);
@@ -228,6 +227,15 @@ void authBluetooth(uint32_t code, bool accept) {
 void rssiBluetooth() {
   if (!wrBtStarted || !audioSetQueue) return;
   audioTxMessage.cmd = WR_BTRSSI;
+  xQueueSend(audioSetQueue, &audioTxMessage, 0);
+}
+
+void connectBluetooth(esp_bd_addr_t addr) {
+  if (!wrBtStarted || !audioSetQueue) return;
+  static char cAddr[ESP_BD_ADDR_LEN + 1] = {};
+  memcpy(cAddr, addr, ESP_BD_ADDR_LEN);
+  audioTxMessage.cmd = WR_BTCONN;
+  audioTxMessage.txt = cAddr;
   xQueueSend(audioSetQueue, &audioTxMessage, 0);
 }
 
@@ -389,7 +397,7 @@ void webradioHandle() {
             if (response[0]) {
               if (atoi(response) != 200) {         //Ignore "200 OK" because the problem is elsewhere (DNS?) and this wouldn't make sense
                 info(NOW, 0, LV_SYMBOL_WARNING " Error: %s", response);              
-                serial.printf("> Server Responded: %s", response);
+                serial.printf("> Server Responded: %s\r\n", response);
               }
             }
           }
@@ -492,6 +500,14 @@ void webradioHandle() {
       //Hardly worth the bother..
       //artFoundEmbedded(audioRxMessage.value1, audioRxMessage.value2);
     }
+    else if (audioRxMessage.cmd == WR_PRINT) {
+      serial.print(audioRxMessage.txt);
+      free((void*)audioRxMessage.txt);
+    }
+    else if (audioRxMessage.cmd == WR_PRINTLN) {
+      serial.println(audioRxMessage.txt);
+      free((void*)audioRxMessage.txt);
+    }
 #ifdef BLUETOOTH
     else if (audioRxMessage.cmd == WR_BTMSG) {
       bluetoothMessage(audioRxMessage.value1, audioRxMessage.value2, audioRxMessage.txt);
@@ -567,6 +583,26 @@ String serverResponse = "";
 String connectingURL = "";
 bool bttRunning = false;
 
+void audioPrint(const char* str) {
+  struct audioMessage audioTxTaskMessage;
+  int size = strlen(str) + 1;
+  char* buf = (char*)ps_malloc(size);
+  memcpy(buf, str, size);
+  audioTxTaskMessage.cmd = WR_PRINT;
+  audioTxTaskMessage.txt = buf;
+  xQueueSend(audioGetQueue, &audioTxTaskMessage, portMAX_DELAY);
+}
+
+void audioPrintln(const char* str) {
+  struct audioMessage audioTxTaskMessage;
+  int size = strlen(str) + 1;
+  char* buf = (char*)ps_malloc(size);
+  memcpy(buf, str, size);
+  audioTxTaskMessage.cmd = WR_PRINTLN;
+  audioTxTaskMessage.txt = buf;
+  xQueueSend(audioGetQueue, &audioTxTaskMessage, portMAX_DELAY);
+}
+
 //(re)start a connection from the webradio task
 uint32_t StartNewURL(const char* host, bool meta) {
   if (WiFi.status() != WL_CONNECTED) {
@@ -590,8 +626,8 @@ void updateVSTone(uint16_t val) {
 void audio_info(const char *info){
   struct audioMessage audioTxTaskMessage;
   if (settings->logLevel == ARDUHAL_LOG_LEVEL_DEBUG) {
-    //serial.print("* "); 
-    //serial.println(info);
+    audioPrint("* "); 
+    audioPrintln(info);
   }
   //Look for new server connections including redirects
   // also clear serverResponse on new connection
@@ -789,7 +825,6 @@ void radioTask( void * pvParameters ) {
   initBT();
 #endif
   if (!audio) audio = new Audio();
-  //Serial.println("Got to here..");
   audio->setConnectionTimeout(1000, 4000);
   //Start message
   audioTxTaskMessage.cmd = WR_START;
@@ -877,6 +912,11 @@ void radioTask( void * pvParameters ) {
           bttRunning = true;
         }
       }      
+      else if(audioRxTaskMessage.cmd == WR_BTCONN){
+        esp_bd_addr_t addr = {};
+        memcpy(addr, audioRxTaskMessage.txt, ESP_BD_ADDR_LEN);
+        BTconnect(addr);
+      }
       else if(audioRxTaskMessage.cmd == WR_BTVOL){
         BTvolchange(audioRxTaskMessage.value1);
       }

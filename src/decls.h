@@ -501,6 +501,7 @@ void btNotify(uint32_t source, uint32_t val, const char* msg);
 void passBluetooth(uint8_t key, uint8_t state);
 void authBluetooth(uint32_t code, bool accept);
 void rssiBluetooth();
+void connectBluetooth(esp_bd_addr_t addr);
 void audio_showstation(const char *info);
 void audio_showstreamtitle(const char *info);
 #endif
@@ -537,6 +538,8 @@ void getPasscode(void(*okFunction)(const char*), bool animated);
 void bluetoothMessage(uint32_t source, uint32_t val, const char* txt);
 bool isBtConnected();
 bool isBtStarted();
+const char* getBtPeerName();
+esp_bd_addr_t* getBtPeerAddress();
 bool initBT();
 bool startBT();
 void handleBT();
@@ -548,7 +551,7 @@ void BTauthorise(uint32_t code, bool accept);
 void BTsetRSSIActive(bool active);
 bool BTupdateRssi();
 bool BTconnect(esp_bd_addr_t peer);
-bool BTdisconnect(esp_bd_addr_t peer);
+bool BTdisconnect();
 #endif
 
 //buttons.cpp
