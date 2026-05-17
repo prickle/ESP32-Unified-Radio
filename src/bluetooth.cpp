@@ -175,6 +175,7 @@ bool isBtStarted() {
 }
 
 const char* getBtPeerName() {
+  if (rName == NULL) return "";
   return rName;
 }
 
@@ -450,8 +451,10 @@ void bluetoothMessage(uint32_t source, uint32_t val, const char* txt) {
   }
   else if (source == BT_RNAME_EVENT) {
     rName = txt;
-    if (currentConnectionState)
+    if (currentConnectionState) {
       info(TEXT, 0, LV_SYMBOL_BLUETOOTH " Connected to %s", rName);
+      updateUrlEditText();
+    }
   }
   else if (source == BT_PASSKEY_EVENT) {
       info(NAME, 10, "Passkey: %d", val);
@@ -532,6 +535,7 @@ bool startBT() {
   setSampleRate(44100);
   setBitsPerSample(16);
   setChannels(2);
+  btVolume = settings->dabVolume * 127.0f / 21.0f;
   // start bluetooth classic via bluedroid
   if (!btStart()) { fail = true; log_e("btStart"); }
   esp_err_t err = esp_bluedroid_init();
@@ -608,7 +612,6 @@ bool startBT() {
   //Reconnect to last peer
   btAutoConnect = settings->reconnectBt;
   if (!fail && btAutoConnect && (btAutoConnect = readPeerAddress())) {
-    btNotify(BT_TXT_EVENT, 0, "Reconnecting to last peer..");
     BTconnect(peerAddress);
     btAutoTimeout = millis() + BT_AUTOTIMER;
   } else {
@@ -626,13 +629,13 @@ void handleBT() {
     if (btAutoTimeout && btAutoTimeout < millis()) {
       if (btAutoRetry < 4) {
         char buf[32];
-        sprintf(buf, "Searching for peer, attempt %d..", btAutoRetry);
+        sprintf(buf, "Searching, attempt %d..", btAutoRetry);
         btNotify(BT_TXT_EVENT, 0, buf);
         BTconnect(peerAddress);
         btAutoRetry++;
         btAutoTimeout = millis() + BT_AUTOTIMER;
       } else {
-        btNotify(BT_TXT_EVENT, 0, "Last peer not found.");
+        btNotify(BT_TXT_EVENT, 0, "Peer not found.");
         btAutoTimeout = 0;
       }
     }
@@ -652,7 +655,7 @@ void stopBT() {
 //Send volume change - called from audio thread
 void BTvolchange(uint32_t vol) {
   btVolume = vol * 127.0f / 21.0f;
-  if (btConnected && btVolNotify) {
+  if (btConnected) {//} && btVolNotify) {
     esp_avrc_rn_param_t rn_param;
     rn_param.volume = btVolume;
     esp_avrc_tg_send_rn_rsp(ESP_AVRC_RN_VOLUME_CHANGE, ESP_AVRC_RN_RSP_CHANGED, &rn_param);
@@ -748,7 +751,6 @@ void bt_gap_cb(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param) {
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 0, 0)
     case ESP_BT_GAP_READ_REMOTE_NAME_EVT: {
       if (param->read_rmt_name.stat == ESP_BT_STATUS_SUCCESS) {
-        log_i("ESP_BT_GAP_READ_REMOTE_NAME_EVT remote name:%s", param->read_rmt_name.rmt_name);
         memcpy(remoteName, param->read_rmt_name.rmt_name, ESP_BT_GAP_MAX_BDNAME_LEN);
         btNotify(BT_RNAME_EVENT, 0, remoteName);
       }
@@ -887,7 +889,6 @@ void bt_rc_tg_cb(esp_avrc_tg_cb_event_t event, esp_avrc_tg_cb_param_t *param) {
       break;
   }
   case ESP_AVRC_TG_REMOTE_FEATURES_EVT: {
-      log_i("AVRC remote features %x, CT features %x\r\n", param->rmt_feats.feat_mask, param->rmt_feats.ct_feat_flag);
       break;
   }
   default:

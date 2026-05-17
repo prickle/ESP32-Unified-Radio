@@ -246,12 +246,8 @@ void loadPreset(uint16_t index) {
 #endif
   //Bluetooth
 #ifdef BLUETOOTH
-  else if (settings->mode == MODE_BT) {
-    if (isBtStarted()) {
-      esp_bd_addr_t addr = {};
-      memcpy(addr, &(settings->presets[index].name[28]), ESP_BD_ADDR_LEN);
-      connectBluetooth(addr);     
-    }
+  else if (mode == MODE_BT) {
+    memcpy(settings->hostAddrBt, &(settings->presets[index].name[28]), ESP_BD_ADDR_LEN);
   }
 #endif
   else return;
@@ -345,9 +341,12 @@ void updateUrlEditText() {
 #ifdef BLUETOOTH
     else if (settings->mode == MODE_BT) {
       char addr[64] = {};
-      if (isBtConnected()) {        
-        sprintf(addr, "BT://%02X:%02X:%02X:%02X:%02X:%02X", settings->hostAddrBt[0], settings->hostAddrBt[1], 
+      if (isBtConnected()) {
+        if (getBtPeerName()[0] == '\0')        
+          sprintf(addr, "BT://%02X:%02X:%02X:%02X:%02X:%02X", settings->hostAddrBt[0], settings->hostAddrBt[1], 
           settings->hostAddrBt[2], settings->hostAddrBt[3], settings->hostAddrBt[4], settings->hostAddrBt[5]);
+        else sprintf(addr, "BT://%02X:%02X:%02X:%02X:%02X:%02X(%s)", settings->hostAddrBt[0], settings->hostAddrBt[1], 
+          settings->hostAddrBt[2], settings->hostAddrBt[3], settings->hostAddrBt[4], settings->hostAddrBt[5], getBtPeerName());
         } else sprintf(addr, "BT://"); 
       lv_textarea_set_text(urlEditText, addr);  
     }
