@@ -502,6 +502,7 @@ void passBluetooth(uint8_t key, uint8_t state);
 void authBluetooth(uint32_t code, bool accept);
 void rssiBluetooth();
 void connectBluetooth(esp_bd_addr_t addr);
+void disconnectBluetooth();
 void audio_showstation(const char *info);
 void audio_showstreamtitle(const char *info);
 #endif
@@ -808,6 +809,7 @@ void wifiScanEntry(int index, const char* entry);
 void closeNetworkDropdown();
 void setDabScanLabel(const char* buf);
 void hideScanSpinner(bool hide);
+void updateBtStatus(uint8_t status);
 
 //stations.cpp
 void createStationsWindow(lv_obj_t * page);

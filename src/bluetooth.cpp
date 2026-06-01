@@ -378,12 +378,17 @@ void bluetoothMessage(uint32_t source, uint32_t val, const char* txt) {
     closePasscode(true);
     if (val == ESP_BT_STATUS_SUCCESS) {
       info(TEXT, 0, "Authentication success: %s\r\n", txt);
-    } else info(TEXT, 0, "Authentication failed, status:%d\r\n", val);
+      updateBtStatus(BT_STATE_AUTHOK);
+    } else {
+      info(TEXT, 0, "Authentication failed, status:%d\r\n", val);
+      updateBtStatus(BT_STATE_AUTHBAD);
+    }
   }
   else if (source == BT_CONN_EVENT) {
     currentConnectionState = val;
     if (val == ESP_A2D_CONNECTION_STATE_CONNECTING) {
       info(TEXT, 0, LV_SYMBOL_BLUETOOTH " Connecting..");
+      updateBtStatus(BT_STATE_CONNECTING);
     }
     else if (val == ESP_A2D_CONNECTION_STATE_CONNECTED) {
       if (rName) {    
@@ -391,15 +396,17 @@ void bluetoothMessage(uint32_t source, uint32_t val, const char* txt) {
       } 
       else info(TEXT, 0, LV_SYMBOL_BLUETOOTH " Connected");
       updateUrlEditText();
+      updateBtStatus(BT_STATE_CONNECTED);
     }
     else if (val == ESP_A2D_CONNECTION_STATE_DISCONNECTED) {
-      info(TEXT, 0, LV_SYMBOL_BLUETOOTH " Disconnected");
       info(NAME, 0, LV_SYMBOL_STOP " Stopped");
       info(NOW, 0, "");
+      info(TEXT, 0, LV_SYMBOL_BLUETOOTH " Disconnected");
       rName = NULL;
       gotMetadata = false;
       updatePlayStatus();
       updateUrlEditText();
+      updateBtStatus(BT_STATE_DISCONNECTED);
     }
   }
   else if (source == BT_VOL_EVENT) {
@@ -413,7 +420,10 @@ void bluetoothMessage(uint32_t source, uint32_t val, const char* txt) {
   else if (source == BT_META_EVENT) {
     gotMetadata = true;
     if (val == ESP_AVRC_MD_ATTR_TITLE) audio_showstreamtitle(txt);
-    else if (val == ESP_AVRC_MD_ATTR_ARTIST) audio_showstation(txt);
+    else if (val == ESP_AVRC_MD_ATTR_ARTIST) {
+      if (txt[0] == '\0') info(NOW, 0, "");
+      else audio_showstation(txt);
+    }
     else if (val == ESP_AVRC_MD_ATTR_PLAYING_TIME) {
       trackLength = atoi(txt);
       updateTimeBar();
@@ -455,11 +465,14 @@ void bluetoothMessage(uint32_t source, uint32_t val, const char* txt) {
       info(TEXT, 0, LV_SYMBOL_BLUETOOTH " Connected to %s", rName);
       updateUrlEditText();
     }
+    updateBtStatus(BT_STATE_PEERNAME);
   }
   else if (source == BT_PASSKEY_EVENT) {
-      info(NAME, 10, "Passkey: %d", val);
+    updateBtStatus(BT_STATE_WAITKEY);
+    info(NAME, 10, "Passkey: %d", val);
   }
   else if (source == BT_PASSREQ_EVENT) {
+    updateBtStatus(BT_STATE_ENTERCODE);
     getPasscode(passcodeEntered, true);
   }
 
@@ -908,6 +921,7 @@ void bt_a2d_cb(esp_a2d_cb_event_t event, esp_a2d_cb_param_t *param)
       btAutoRetry = 0;
     }
     if (param->conn_stat.state == ESP_A2D_CONNECTION_STATE_CONNECTED){
+      btConnected = true;
       memcpy(peerAddress, param->conn_stat.remote_bda, ESP_BD_ADDR_LEN);
       writePeerAddress(peerAddress);
       esp_bt_gap_set_scan_mode(ESP_BT_NON_CONNECTABLE, ESP_BT_NON_DISCOVERABLE);
@@ -919,6 +933,7 @@ void bt_a2d_cb(esp_a2d_cb_event_t event, esp_a2d_cb_param_t *param)
       if (rssiActive) esp_bt_gap_read_rssi_delta(param->conn_stat.remote_bda);
     }
     else if (param->conn_stat.state == ESP_A2D_CONNECTION_STATE_DISCONNECTED) {
+      btConnected = false;
       esp_bt_gap_set_scan_mode(ESP_BT_CONNECTABLE, ESP_BT_GENERAL_DISCOVERABLE);
       if (param->conn_stat.disc_rsn != ESP_A2D_DISC_RSN_NORMAL) {
         btAutoTimeout = millis() + BT_AUTOTIMER;
@@ -929,10 +944,10 @@ void bt_a2d_cb(esp_a2d_cb_event_t event, esp_a2d_cb_param_t *param)
   }
   case ESP_A2D_AUDIO_STATE_EVT: {
     if (ESP_A2D_AUDIO_STATE_STARTED == param->audio_stat.state) {
-      btConnected = true;
+      //btConnected = true;
     } else if (ESP_A2D_AUDIO_STATE_STOPPED == param->audio_stat.state) {
       btChannels = 0;
-      btConnected = false;
+      //btConnected = false;
     }
     break;
   }

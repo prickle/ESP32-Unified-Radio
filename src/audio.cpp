@@ -35,7 +35,7 @@ bool wrBtStarted = false;
 enum : uint8_t { WR_START, WR_SETVOLUME, WR_GETVOLUME, WR_CONNECTTOHOST, WR_CONNECTTOFS, WR_STOPSONG, 
                  WR_META, WR_CONNECTING, WR_SETTONE, WR_STATS, WR_TITLE, WR_STATION, WR_ICYURL, WR_DELETE, 
                  WR_VU, WR_EOF, WR_EMBED, WR_RESPONSE, WR_MONO, WR_SRATE, WR_SETWIDE, WR_PRINT, WR_PRINTLN,  
-                 WR_BTSTART, WR_BTSTOP, WR_BTMSG, WR_BTVOL, WR_BTPASS, WR_BTRSSI, WR_BTAUTH, WR_BTCONN };
+                 WR_BTSTART, WR_BTSTOP, WR_BTMSG, WR_BTVOL, WR_BTPASS, WR_BTRSSI, WR_BTAUTH, WR_BTCONN, WR_BTDIS };
 
 //Webradio message
 struct audioMessage{
@@ -236,6 +236,12 @@ void connectBluetooth(esp_bd_addr_t addr) {
   memcpy(cAddr, addr, ESP_BD_ADDR_LEN);
   audioTxMessage.cmd = WR_BTCONN;
   audioTxMessage.txt = cAddr;
+  xQueueSend(audioSetQueue, &audioTxMessage, 0);
+}
+
+void disconnectBluetooth() {
+  if (!wrBtStarted || !audioSetQueue) return;
+  audioTxMessage.cmd = WR_BTDIS;
   xQueueSend(audioSetQueue, &audioTxMessage, 0);
 }
 
@@ -916,6 +922,9 @@ void radioTask( void * pvParameters ) {
         esp_bd_addr_t addr = {};
         memcpy(addr, audioRxTaskMessage.txt, ESP_BD_ADDR_LEN);
         BTconnect(addr);
+      }
+      else if(audioRxTaskMessage.cmd == WR_BTDIS){
+        BTdisconnect();
       }
       else if(audioRxTaskMessage.cmd == WR_BTVOL){
         BTvolchange(audioRxTaskMessage.value1);

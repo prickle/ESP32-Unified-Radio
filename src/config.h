@@ -99,6 +99,16 @@ extern char podcast_secret[128];
 extern char weather_location[128];
 extern char weather_owmkey[128];
 
+//Bluetooth state
+#define BT_STATE_DISCONNECTED  0
+#define BT_STATE_DISCONNECTING 1
+#define BT_STATE_CONNECTING    2
+#define BT_STATE_CONNECTED     3
+#define BT_STATE_AUTHBAD       4
+#define BT_STATE_AUTHOK        5
+#define BT_STATE_PEERNAME      6
+#define BT_STATE_WAITKEY       7
+#define BT_STATE_ENTERCODE     8
 
 //Battery monitoring
 extern float battV;

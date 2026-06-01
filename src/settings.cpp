@@ -236,6 +236,7 @@ void wifiScanAction(lv_event_t * event);
 void passwordEditAction(lv_event_t * event);
 void keyboardPasswordKeyAction(lv_event_t * event);
 void wifiDisconnectAction(lv_event_t * event);
+void btDisconnectAction(lv_event_t * event);
 void autoBtAction(lv_event_t * event);
 void pinBtAction(lv_event_t * event);
 void btSetEditText();
@@ -305,6 +306,9 @@ static lv_obj_t * ftpUserText;
 static lv_obj_t * ftpPassText;
 static lv_obj_t * saveSwitch;
 static lv_obj_t * monoSwitch;
+static lv_obj_t * btStatusLbl;
+static lv_obj_t * btDisconnectBtn = NULL;
+static lv_obj_t * btDisconnectBtnLbl = NULL;
 static lv_obj_t * autoBtSwitch;
 static lv_obj_t * pinBtMatrix;
 static lv_obj_t * pinBtText;
@@ -569,21 +573,35 @@ void createSettingsWindow(lv_obj_t * page) {
     wifiDisconnectBtn = lv_btn_create(wifiContainer);
     lv_obj_add_event_cb(wifiDisconnectBtn, wifiDisconnectAction, LV_EVENT_CLICKED, NULL);
     lv_obj_add_style(wifiDisconnectBtn, &style_bg, LV_PART_MAIN);
+    lv_obj_set_size(wifiDisconnectBtn, 24, 24);
     wifiDisconnectBtnLbl = lv_label_create(wifiDisconnectBtn);
     lv_label_set_text(wifiDisconnectBtnLbl, LV_SYMBOL_CLOSE);
-    lv_obj_align_to(wifiDisconnectBtn, wifiNetworkList, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 10);         //Align next to the slider
+    lv_obj_center(wifiDisconnectBtnLbl);
+    lv_obj_align_to(wifiDisconnectBtn, wifiNetworkList, LV_ALIGN_OUT_BOTTOM_RIGHT, 0, 6);         //Align next to the slider
     setPasswordVisibility(false, false);
 
     // -- Bluetooth controls
     btContainer = lv_obj_create(page);
-    lv_obj_set_size(btContainer, width, 120);
+    lv_obj_set_size(btContainer, width, 158);
     lv_obj_add_style(btContainer, &style_groupbox, LV_PART_MAIN);
     lv_obj_clear_flag(btContainer, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_align_to(btContainer, wifiContainer, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);         //Align next to the slider
     lv_obj_set_hidden(btContainer, true);
 
+    btStatusLbl = lv_label_create(btContainer);
+    lv_obj_set_pos(btStatusLbl, 10, 10);                //Align below the first button
+    lv_obj_set_width(btStatusLbl, width - 65);
+    btDisconnectBtn = lv_btn_create(btContainer);
+    lv_obj_add_event_cb(btDisconnectBtn, btDisconnectAction, LV_EVENT_CLICKED, NULL);
+    lv_obj_add_style(btDisconnectBtn, &style_bg, LV_PART_MAIN);
+    lv_obj_set_size(btDisconnectBtn, 24, 24);
+    btDisconnectBtnLbl = lv_label_create(btDisconnectBtn);
+    lv_label_set_text(btDisconnectBtnLbl, LV_SYMBOL_CLOSE);
+    lv_obj_center(btDisconnectBtnLbl);
+    lv_obj_align_to(btDisconnectBtn, btStatusLbl, LV_ALIGN_OUT_RIGHT_MID, 10, 0);         //Align next to the slider
+
     btn_label = lv_label_create(btContainer);
-    lv_obj_set_pos(btn_label, 10, 10);                //Align below the first button
+    lv_obj_set_pos(btn_label, 10, 44);                //Align below the first button
     lv_label_set_text(btn_label, "Bluetooth Auto-reconnect");
 
     autoBtSwitch = lv_switch_create(btContainer);
@@ -594,7 +612,7 @@ void createSettingsWindow(lv_obj_t * page) {
     lv_obj_add_event_cb(autoBtSwitch, autoBtAction, LV_EVENT_VALUE_CHANGED, NULL); 
  
     btn_label = lv_label_create(btContainer);
-    lv_obj_set_pos(btn_label, 10, 44);                //Align below the first button
+    lv_obj_set_pos(btn_label, 10, 78);                //Align below the first button
     lv_label_set_text(btn_label, "Security");
 
     pinBtMatrix = lv_btnmatrix_create(btContainer);
@@ -607,7 +625,7 @@ void createSettingsWindow(lv_obj_t * page) {
     lv_obj_add_event_cb(pinBtMatrix, pinBtAction, LV_EVENT_VALUE_CHANGED, NULL); 
  
     btn_label = lv_label_create(btContainer);
-    lv_obj_set_pos(btn_label, 10, 78);                //Align below the first button
+    lv_obj_set_pos(btn_label, 10, 112);                //Align below the first button
     lv_label_set_text(btn_label, "Bluetooth Legacy PIN Code");
 
     pinBtText = lv_textarea_create(btContainer);
@@ -850,6 +868,7 @@ void createSettingsWindow(lv_obj_t * page) {
 
 void setSettingsVisibility() {
   lv_obj_t* above = mainContainer;
+  //WIFI Container
 #ifndef USE_OTA  
   bool showWifi = (settings->mode == MODE_WEB || settings->mode == MODE_FTP || settings->mode == MODE_POD || settings->mode == MODE_DLNA);
 #else
@@ -857,26 +876,33 @@ void setSettingsVisibility() {
 #endif
   lv_obj_set_hidden(wifiContainer, !showWifi);
   above = showWifi?wifiContainer:above;
+  //DAB Container
 #ifdef MONKEYBOARD
   bool showDab = (settings->mode == MODE_DAB || settings->mode == MODE_FM);
   lv_obj_set_hidden(dabContainer, !showDab);
   lv_obj_align_to(dabContainer, above, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);         //Align next to the slider
   above = showDab?dabContainer:above;
 #endif
+  //Podcast Container
+  bool showPod = (settings->mode == MODE_POD);
+  lv_obj_set_hidden(podcastContainer, !showPod);
+  lv_obj_align_to(podcastContainer, above, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);         //Align next to the slider
+  above = showPod?podcastContainer:above;
+  //Bluetooth Container
 #ifdef BLUETOOTH
   bool showBt = (settings->mode == MODE_BT);
   lv_obj_set_hidden(btContainer, !showBt);
   lv_obj_align_to(btContainer, above, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);         //Align next to the slider
   above = showBt?btContainer:above;
 #endif
+  //FTP Container
   bool showFtp = (settings->mode == MODE_FTP);
   lv_obj_set_hidden(ftpContainer, !showFtp);
   lv_obj_align_to(ftpContainer, above, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);         //Align next to the slider
   above = showFtp?ftpContainer:above;
+  //Others
   lv_obj_align_to(timeContainer, above, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);
   lv_obj_align_to(weatherContainer, timeContainer, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);         //Align next to the slider
-  lv_obj_align_to(podcastContainer, weatherContainer, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 6);         //Align next to the slider
-
 }
 
 //-----------------------------------------------------------------------
@@ -1139,7 +1165,63 @@ void restartBluetooth() {
   stopBluetooth();
   startBluetooth();
 }
+
+void updateBtStatus(uint8_t status) {
+  switch (status) {
+    case BT_STATE_DISCONNECTING:
+      lv_label_set_text(btStatusLbl, "BT: Disconnecting..");
+      break;
+    case BT_STATE_DISCONNECTED:
+      lv_obj_clear_state(btDisconnectBtn, LV_STATE_DISABLED);
+      lv_label_set_text(btStatusLbl, "BT: Disconnected");
+      lv_label_set_text(btDisconnectBtnLbl, LV_SYMBOL_REFRESH);
+      break;
+    case BT_STATE_CONNECTING:
+      lv_label_set_text(btStatusLbl, "BT: Connecting..");
+      break;
+    case BT_STATE_CONNECTED:
+      lv_obj_clear_state(btDisconnectBtn, LV_STATE_DISABLED);
+      if (getBtPeerName()[0] == '\0')
+        lv_label_set_text(btStatusLbl, "BT: Connected");
+      else lv_label_set_text_fmt(btStatusLbl, "BT: Connected to %s", getBtPeerName());
+      lv_label_set_text(btDisconnectBtnLbl, LV_SYMBOL_CLOSE);
+      break;
+    case BT_STATE_AUTHBAD:
+      lv_label_set_text(btStatusLbl, "BT: Authentication Failed!");
+      break;
+    case BT_STATE_AUTHOK:
+      lv_label_set_text(btStatusLbl, "BT: Authentication OK");
+      break;
+    case BT_STATE_PEERNAME:
+      if (isBtConnected())
+        lv_label_set_text_fmt(btStatusLbl, "BT: Connected to %s", getBtPeerName());
+      break;
+    case BT_STATE_WAITKEY:
+      lv_label_set_text(btStatusLbl, "BT: Waiting for passkey..");
+      break;
+    case BT_STATE_ENTERCODE:
+      lv_label_set_text(btStatusLbl, "BT: Enter passcode..");
+      break;
+  }
+}
 #endif
+
+void btDisconnectAction(lv_event_t * event) {
+#ifdef BLUETOOTH
+  if (isBtConnected()) {
+    updateBtStatus(BT_STATE_DISCONNECTING);
+    lv_obj_add_state(btDisconnectBtn, LV_STATE_DISABLED);
+    disconnectBluetooth();
+  } else {
+    esp_bd_addr_t empty_connection = {0, 0, 0, 0, 0, 0};
+    if (memcmp(settings->hostAddrBt, empty_connection, ESP_BD_ADDR_LEN) != 0) {
+      updateBtStatus(BT_STATE_CONNECTING);
+      lv_obj_add_state(btDisconnectBtn, LV_STATE_DISABLED);
+      connectBluetooth(settings->hostAddrBt);
+    }
+  }
+#endif  
+}
 
 void btSetEditText() {
   char buf[20];
