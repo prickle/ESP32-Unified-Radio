@@ -21,8 +21,9 @@
 #endif
 #endif
 
+
 //================================
-//Super Woofer on WT32-SC01
+//Super Woofer on WT32-SC01+
 #ifdef SUPERWOOFER
 // HOSTNAME for OTA update
 #define HOSTNAME  "ESP-WOOFER-"
@@ -54,6 +55,23 @@
 #define TFT_ROTATION 3
 //#define VUMETER
 #define FFTMETER
+
+//I2S audio
+//Internal mono DAC
+#define I2S_INT_DOUT      37
+#define I2S_INT_BCLK      36
+#define I2S_INT_LRC       35
+//External stereo DAC
+#define I2S_EXT_DOUT      21
+#define I2S_EXT_BCLK      13
+#define I2S_EXT_LRC       12
+
+//I2C Bus
+//External I2C Bus
+#define I2C_SDA       10
+#define I2C_SCL       11
+
+
 #endif
 
 //================================
@@ -84,6 +102,11 @@
 #define TFT_ROTATION 3
 #define VUMETER
 #define LOG_REDIRECT
+//I2S audio
+//External stereo DAC
+#define I2S_DOUT      21
+#define I2S_BCLK      9
+#define I2S_LRC       11
 #endif
 
 //================================
@@ -150,7 +173,8 @@
 #endif
 
 //================================
-//Work Radio on ESP32
+//Desk Radio on ESP32
+//2MB flash only!
 #ifdef MINIRADIO
 #define HOSTNAME  "DESKRADIO-"
 #define MDNS_NAME "deskradio"        //"deskradio.local"
@@ -251,7 +275,7 @@
 //#define MONITOR_PORT
 //Capture logging messages from ESP-IDF
 #define LOG_REDIRECT
-//Bluetooth (experimental)
+//Bluetooth
 #define BLUETOOTH
 
 //I2S audio
@@ -369,7 +393,8 @@
 #endif
 
 //================================
-//Super Woofer on WT32-SC01
+//Waveshare 2.8" S3 touch
+//16MB PSRAM
 #ifdef WAVESHARE28S3
 // HOSTNAME for OTA update
 #define HOSTNAME  "ESP-WAVESHARE-"
@@ -402,6 +427,10 @@
 #define CST328_PIN_SCL  3
 //#define VUMETER
 //#define FFTMETER
+//I2S audio
+#define I2S_DOUT      47
+#define I2S_BCLK      48
+#define I2S_LRC       38
 #endif
 
 
@@ -618,6 +647,8 @@ void initSDCard();
 #endif
 bool tft_output(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t* bitmap);
 void setBrightness(uint8_t bright);
+void drawLine(int32_t xs, int32_t ys, int32_t xe, int32_t ye, int32_t col);
+void readInputAverage();
 
 //main.cpp
 void createMainWindow(lv_obj_t * win);
@@ -766,6 +797,9 @@ void setupModes();
 void setObjectVisibility();
 void setFunctionLbl(const char* txt);
 void activateFactoryMode();
+void touchCalHandle();
+void calProgress(int count);
+void calWindow_open_action(lv_event_t * event);
 
 //sd.cpp
 boolean playFile(const char *file);
@@ -852,6 +886,9 @@ lv_obj_t* createWindDir(lv_obj_t* parent, int w, int h, uint16_t backCol);
 void drawWindDir(lv_obj_t* obj, int angle, float speed, float gust);
 lv_obj_t* createMoon(lv_obj_t* parent, int w, int h, uint16_t backCol);
 void drawMoon(lv_obj_t* obj, float ph);
+lv_obj_t* createCross(lv_obj_t* parent);
+void showCross(lv_obj_t* obj, bool show);
+void deleteCross(lv_obj_t* obj);
 void drawWideLine(GFXcanvas16 *canvas, int x0, int y0, int x1, int y1, float wd, int color);
 #ifdef FFTMETER
 lv_obj_t* createFFT(lv_obj_t* parent, int w, int h, uint16_t backCol);

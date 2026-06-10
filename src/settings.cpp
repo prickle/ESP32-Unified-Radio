@@ -19,20 +19,27 @@ void writeSettings() {
 
 bool readSettings() {
   serial.printf("> Size of Settings: %d (Max %d)\r\n", sizeof(settingsObject), EE_SIZE);  
-  if (EEPROM.read(eeAddress) != EE_MAGIC) {
+  uint8_t magic = EEPROM.read(eeAddress);
+  if (magic != EE_MAGIC_V1 && magic != EE_MAGIC_V2) {
     serial.println("> EEPROM Uninitialised! Writing defaults.");
     writeSettings();
     return false;
   }
-  for (int i = 0; i < sizeof(settingsObject); i++)
+  int settingsSize = sizeof(settingsObject);
+  if (magic == EE_MAGIC_V1) {
+    settingsSize = EE_SIZE_V1;
+    serial.println("> EEPROM Version upgrade V1 -> V2");
+  } 
+  for (int i = 1; i < settingsSize; i++)
     ((uint8_t*)settings)[i] = EEPROM.read(eeAddress + i);
+  writeSettings();
   return true;
 }
 
 void setDefaults() {
   //Default settings get copied in
   settingsObject defaults = {
-    EE_MAGIC,
+    EE_MAGIC_V2,
     1,          //mode
     90,        //vsVolume
     0x0806,     //vsTone
@@ -79,7 +86,11 @@ void setDefaults() {
     false,      //Auto reconnect Bluetooth
     0,          //Security mode Bluetooth
     {0, 0, 0, 0, 0, 0},  //Host Address Bluetooth
-    {1, 2, 3, 4}//Pin Code Bluetooth
+    {1, 2, 3, 4},//Pin Code Bluetooth
+    0,          //Touchscreen calibration
+    0,
+    0,
+    0
   }; 
   memcpy(settings, &defaults, sizeof(settingsObject));
 }

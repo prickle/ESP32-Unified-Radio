@@ -151,6 +151,9 @@ void loop() {
 #ifdef MINIBUTTONS
   buttonsHandle();
 #endif
+#ifdef CALITOUCH
+  touchCalHandle();
+#endif  
 #ifdef TOUCH_VOLUME
   touchHandle();
 #endif

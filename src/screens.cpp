@@ -758,14 +758,14 @@ typedef struct listMenuObj {
   lv_obj_t* list;
   lv_obj_t* back;
   listMenuObj(lv_obj_t* menuObj, lv_obj_t* menuBack) : list(menuObj), back(menuBack) {}
+  ~listMenuObj() { lv_obj_del(back); lv_obj_del(list); }
 } listMenuObj;
 
 //Destroy listMenu
 void listMenuDelete(lv_anim_t * a) {
   lv_obj_t* list = (lv_obj_t*)a->user_data;
   listMenuObj* menu = (listMenuObj*)lv_obj_get_user_data(list);
-  lv_obj_del(menu->back);
-  lv_obj_del(menu->list);
+  delete(menu);
   lv_obj_set_user_data(list, NULL);
 }
 
@@ -789,8 +789,7 @@ void listMenuDone(lv_obj_t* list, bool animated) {
       lv_anim_start(&a);
     }
     else {
-      lv_obj_del(menu->back);
-      lv_obj_del(menu->list);
+      delete(menu);
       lv_obj_set_user_data(list, NULL);
     }
   }
@@ -1262,6 +1261,8 @@ void errorHalt(const char * message) {
 //Factory mode
 
 lv_obj_t * factoryWindow;
+lv_obj_t * factoryCalBtn;
+lv_obj_t * factoryCalLbl;
 lv_obj_t * factoryResetBtn;
 lv_obj_t * factoryResetLbl;
 lv_obj_t * resetEepromBtn;
@@ -1332,17 +1333,37 @@ void createFactoryWindow() {
 #else
   lv_style_set_text_font(&style_font, &lv_font_montserrat_14);
 #endif
-
+  lv_obj_t* label;
+#ifdef CALITOUCH
+  factoryCalBtn = lv_btn_create(win_content);
+  lv_obj_set_size(factoryCalBtn, 40, 35);
+  lv_obj_add_style(factoryCalBtn, &style_wp, LV_PART_MAIN);
+  lv_obj_add_style(factoryCalBtn, &style_bigfont_orange, LV_PART_MAIN);
+  lv_obj_add_style(factoryCalBtn, &style_bigfont_orange, LV_PART_SELECTED);
+  lv_obj_set_pos(factoryCalBtn, 20, 10);
+  lv_obj_add_event_cb(factoryCalBtn, calWindow_open_action, LV_EVENT_CLICKED, NULL);
+  label = lv_label_create(factoryCalBtn);
+  lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+  lv_label_set_text(label, LV_SYMBOL_GPS);
+  factoryCalLbl = lv_label_create(win_content);
+  lv_obj_add_style(factoryCalLbl, &style_font, LV_PART_MAIN);
+  lv_label_set_text(factoryCalLbl, "Touchscreen Calibration");
+  lv_obj_align_to(factoryCalLbl, factoryCalBtn, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
+#endif
   factoryResetBtn = lv_btn_create(win_content);
   lv_obj_set_size(factoryResetBtn, 40, 35);
   lv_obj_add_style(factoryResetBtn, &style_wp, LV_PART_MAIN);
   lv_obj_add_style(factoryResetBtn, &style_bigfont_orange, LV_PART_MAIN);
   lv_obj_add_style(factoryResetBtn, &style_bigfont_orange, LV_PART_SELECTED);
-  lv_obj_set_pos(factoryResetBtn, 20, 10);
+#ifdef CALITOUCH
+  lv_obj_align_to(factoryResetBtn, factoryCalBtn, LV_ALIGN_OUT_BOTTOM_LEFT, 0, 10);
+#else
+  lv_obj_set_pos(factoryCalBtn, 20, 10);
+#endif
   lv_obj_add_event_cb(factoryResetBtn, factoryReset, LV_EVENT_CLICKED, NULL);
-  lv_obj_t * label = lv_label_create(factoryResetBtn);
+  label = lv_label_create(factoryResetBtn);
   lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
-  lv_label_set_text(label, LV_SYMBOL_LOOP);
+  lv_label_set_text(label, LV_SYMBOL_REFRESH);
   factoryResetLbl = lv_label_create(win_content);
   lv_obj_add_style(factoryResetLbl, &style_font, LV_PART_MAIN);
   lv_label_set_text(factoryResetLbl, "Full Factory Reset (All settings)");
@@ -1613,6 +1634,146 @@ void factoryWindow_close_action(lv_event_t * event) {
   }
   setRadioMode(settings->mode);
 }
+
+#ifdef CALITOUCH
+//=============================================================================================
+//Touchscreen calibration screen
+
+#define CAL_IDLE   0
+#define CAL_DRAW1  1
+#define CAL_READ1  2
+#define CAL_READ2  3
+
+uint8_t calState = CAL_IDLE;
+
+static lv_obj_t * calibrationWindow;
+static lv_obj_t * calibrationLabel;
+static lv_obj_t * calibrationBar;
+static lv_obj_t * calibrationCross1;
+static lv_obj_t * calibrationCross2;
+
+int16_t calFirstX;
+int16_t calFirstY;
+
+void createCalibrationWindow();
+static void calWindow_reset_action(lv_event_t * event);
+static void calWindow_close_action(lv_event_t * event);
+
+void calWindow_open_action(lv_event_t * event) {
+  createCalibrationWindow();
+  calState = CAL_DRAW1;
+}
+
+void createCalibrationWindow() {
+  calibrationWindow = lv_win_create(lv_scr_act(), 40);
+  lv_win_add_title(calibrationWindow, "Touch Calibration");
+  lv_obj_set_size(calibrationWindow, lv_obj_get_content_width(lv_scr_act()), lv_obj_get_content_height(lv_scr_act()));
+  lv_obj_set_pos(calibrationWindow, 0, 0);
+  lv_obj_add_style(calibrationWindow, &style_win, LV_PART_MAIN);
+  lv_obj_t * win_content = lv_win_get_content(calibrationWindow);
+  lv_obj_set_style_bg_color(win_content, lv_color_black(), LV_PART_MAIN);
+  lv_obj_set_style_bg_grad_color(win_content, lv_color_black(), LV_PART_MAIN);
+  
+  lv_obj_t * reset_btn = lv_win_add_btn(calibrationWindow, LV_SYMBOL_REFRESH, 50);           /*Add close button and use built-in close action*/
+  lv_obj_add_style(reset_btn, &style_wp, LV_PART_MAIN);  
+  lv_obj_add_style(reset_btn, &style_bigfont_orange, LV_PART_MAIN);
+  lv_obj_add_style(reset_btn, &style_bigfont_orange, LV_PART_SELECTED);
+  lv_obj_add_event_cb(reset_btn, calWindow_reset_action, LV_EVENT_CLICKED, NULL);
+
+  lv_obj_t * close_btn = lv_win_add_btn(calibrationWindow, LV_SYMBOL_CLOSE, 50);           /*Add close button and use built-in close action*/
+  lv_obj_add_style(close_btn, &style_wp, LV_PART_MAIN);  
+  lv_obj_add_style(close_btn, &style_bigfont_orange, LV_PART_MAIN);
+  lv_obj_add_style(close_btn, &style_bigfont_orange, LV_PART_SELECTED);
+  lv_obj_add_event_cb(close_btn, calWindow_close_action, LV_EVENT_CLICKED, NULL);
+
+  calibrationLabel = lv_label_create(win_content);
+  //lv_label_set_recolor(calibrationLabel, true);
+  lv_obj_set_style_text_align(calibrationLabel, LV_TEXT_ALIGN_CENTER, 0);
+  lv_obj_add_style(calibrationLabel, &style_bigfont, LV_PART_MAIN);           //Apply the new style
+  lv_obj_align(calibrationLabel, LV_ALIGN_CENTER, 0, 0);
+
+  calibrationBar = lv_bar_create(win_content);
+  lv_obj_set_size(calibrationBar, 80, 10);
+  lv_obj_align_to(calibrationBar, calibrationLabel, LV_ALIGN_OUT_BOTTOM_MID, 0, 22);
+  lv_obj_set_style_bg_color(calibrationBar, lv_color_hex(0xFF6025), LV_PART_INDICATOR);
+  lv_bar_set_value(calibrationBar, 0, LV_ANIM_OFF);
+
+  calibrationCross1 = createCross(lv_scr_act());
+  lv_obj_set_pos(calibrationCross1, 30, 60);
+  showCross(calibrationCross1, false);
+
+  calibrationCross2 = createCross(lv_scr_act());
+  lv_obj_set_pos(calibrationCross2, TFT_WIDTH - 50, TFT_HEIGHT - 40);
+  showCross(calibrationCross2, false);
+}
+
+static void calWindow_reset_action(lv_event_t * event) {
+  settings->calXsc = 0;
+  settings->calXsh = 0;
+  settings->calYsc = 0;
+  settings->calYsh = 0;
+  writeSettings();
+  calState = CAL_DRAW1;
+}
+
+static void calWindow_close_action(lv_event_t * event) {
+  if(calibrationWindow) {
+    deleteCross(calibrationCross1);
+    deleteCross(calibrationCross2);
+    lv_obj_del(calibrationWindow);
+    calibrationWindow = NULL;
+  }
+  calState = CAL_IDLE;
+  calTouchState = CAL_STATE_IDLE;
+  calTouchCount = 0;
+}
+
+void touchCalHandle() {
+  if (!calibrationWindow || calState == CAL_IDLE) return;
+  else if (calState == CAL_DRAW1) {
+    if (settings->calXsc) lv_label_set_text(calibrationLabel, "Already Calibrated.\nPress and hold first cross..");
+    else lv_label_set_text(calibrationLabel, "Calibration cleared.\nPress and hold first cross..");
+    lv_task_handler();
+    showCross(calibrationCross1, true);
+    showCross(calibrationCross2, false);
+    calState = CAL_READ1;
+    readInputAverage();
+  }
+  else if (calState == CAL_READ1) {
+    if (calTouchState == CAL_STATE_FINISHED) {
+      lv_label_set_text(calibrationLabel, "Press and hold second cross..");
+      calFirstX = calAvgX;
+      calFirstY = calAvgY;
+      showCross(calibrationCross1, false);
+      showCross(calibrationCross2, true);
+      calState = CAL_READ2;
+      readInputAverage();
+    }
+  }
+  else if (calState == CAL_READ2) {
+    if (calTouchState == CAL_STATE_FINISHED) {
+      showCross(calibrationCross1, false);
+      showCross(calibrationCross2, false);
+      lv_label_set_text_fmt(calibrationLabel, "First point: x(40) = %d, y(70) = %d\n"
+                                              "Second point: x(%d) = %d, y(%d) = %d\n"
+                                              "Calibration Saved.",
+                                              calFirstX, calFirstY, TFT_WIDTH - 40, calAvgX, TFT_HEIGHT - 30, calAvgY);
+      settings->calXsc = (calAvgX - calFirstX) / (TFT_WIDTH - 80);
+      settings->calXsh = calFirstX - (40 * settings->calXsc);
+      settings->calYsc = (calAvgY - calFirstY) / (TFT_HEIGHT - 100);
+      settings->calYsh = calFirstY - (70 * settings->calYsc);
+      writeSettings();
+      calState = CAL_IDLE;
+    }
+  }  
+}
+
+void calProgress(int count) {
+  uint8_t pct = 100 - ((count * 100) / CAL_AVERAGE);
+  lv_bar_set_value(calibrationBar, pct, LV_ANIM_OFF);  
+}
+
+#endif
 
 //=============================================================================================
 //System monitor

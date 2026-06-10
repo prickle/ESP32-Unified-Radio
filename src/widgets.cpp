@@ -223,7 +223,41 @@ void drawMoon(lv_obj_t* obj, float ph) {
   lv_img_set_src(obj, &(canvas->img_dsc));
 }
 
+//--------------------------------------------------------------------
+//Cross widget
 
+lv_obj_t* createCross(lv_obj_t* parent) {
+  canvasImg* canvas = new canvasImg;
+  lv_obj_t *img = lv_img_create(parent);
+  uint16_t *buffer = (uint16_t*)ps_malloc(20 * 20 * 2);
+  canvas->img = new GFXcanvas16(20, 20, buffer);
+  canvas->img->fillRect(0, 0, 20, 20, (canvas->backCol = 0));
+  fillImageDescription(&(canvas->img_dsc), canvas->img);
+  lv_obj_set_user_data(img, canvas);
+  return img;
+}
+
+void showCross(lv_obj_t* obj, bool show) {
+  canvasImg* canvas = (canvasImg*)lv_obj_get_user_data(obj);
+  if (!canvas) return;
+  GFXcanvas16* buffer = canvas->img;  
+  if (!buffer) return;
+  buffer->fillRect(0, 0, 20, 20, canvas->backCol);  
+  buffer->drawLine(0, 10, 20, 10, show?0xFFFF:0);
+  buffer->drawLine(10, 0, 10, 20, show?0xFFFF:0);
+  lv_img_set_src(obj, &(canvas->img_dsc));
+}
+
+void deleteCross(lv_obj_t* obj) {
+  canvasImg* canvas = (canvasImg*)lv_obj_get_user_data(obj);
+  if (!canvas) return;
+  GFXcanvas16* buffer = canvas->img;  
+  if (!buffer) return;
+  free(buffer->getBuffer());
+  delete(buffer);
+  delete(canvas);
+  lv_obj_del(obj);
+}
 //----------------------------------------------------
 // FFT widget
 

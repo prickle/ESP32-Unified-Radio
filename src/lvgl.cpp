@@ -26,7 +26,12 @@ static lv_fs_drv_t sd_drv;
 #endif
 bool touched = false; //Touchscreen currently touched
 bool ScreenSaverActive = false;
-
+#ifdef CALITOUCH
+int calTouchCount = 0;
+uint8_t calTouchState = CAL_STATE_IDLE;
+uint32_t calAvgX = 0;
+uint32_t calAvgY = 0;
+#endif
 void LVdispFlush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p );
 static void LVtickHandler(void);
 void LVinputRead(lv_indev_drv_t * drv, lv_indev_data_t*data);
@@ -175,6 +180,46 @@ bool tft_output(int16_t x, int16_t y, uint16_t w, uint16_t h, uint16_t* bitmap) 
   return 1;
 }
 
+#ifdef CALITOUCH
+void readInputAverage() {
+  calTouchState = CAL_STATE_COUNTING;
+  calTouchCount = CAL_AVERAGE;
+  calAvgX = 0;
+  calAvgY = 0;
+  calProgress(calTouchCount);
+}
+
+
+//Calibration
+void inputCalibrate(int16_t x, int16_t y) {
+  if (calTouchCount) {
+    calAvgX += x;
+    calAvgY += y;
+    if (calTouchCount == 1) {
+      calAvgX /= CAL_AVERAGE;
+      calAvgY /= CAL_AVERAGE;
+      calTouchState = CAL_STATE_WAITING;
+    }
+    calProgress(--calTouchCount);
+  }
+}
+
+//Touch released, calibration done?
+void inputCalibrateDone() {
+  if (calTouchCount) readInputAverage(); //Not done
+  if (calTouchState == CAL_STATE_WAITING)
+    calTouchState = CAL_STATE_FINISHED;
+}
+
+void performCalibration(int16_t* lx, int16_t* ly) {
+  //Perform calibration if present
+  if (settings->calXsc) {
+    *lx = *lx * settings->calXsc + settings->calXsh;
+    *ly = *ly * settings->calYsc + settings->calYsh;
+  }
+}
+#endif
+
 #ifdef FUNKYTOUCH
 // This is calibration data for the raw touch data to the screen coordinates
 #define TS_MINX 320
@@ -202,6 +247,14 @@ void LVinputRead(lv_indev_drv_t * drv, lv_indev_data_t*data) {
     data->point.x = px;
     data->point.y = py;
   }
+#ifdef CALITOUCH
+  if (touched) {
+    inputCalibrate(data->point.x, data->point.y);
+    performCalibration(&data->point.x, &data->point.y);
+  } else {
+    inputCalibrateDone();
+  }
+#endif
   x = px;
   y = py;
   touched = rz;
@@ -228,6 +281,14 @@ void LVinputRead(lv_indev_drv_t * drv, lv_indev_data_t*data)
     data->point.x = x;
     data->point.y = y;
   }
+#ifdef CALITOUCH
+  if (touched) {
+    inputCalibrate(data->point.x, data->point.y);
+    performCalibration(&data->point.x, &data->point.y);
+  } else {
+    inputCalibrateDone();
+  }
+#endif
   lx = x;
   ly = y;
   touched = tz;
@@ -242,7 +303,14 @@ void LVinputRead(lv_indev_drv_t * drv, lv_indev_data_t*data) {
     data->state = LV_INDEV_STATE_PR;
     data->point.y = (TFT_HEIGHT - 1) - tsPanel.getPoint(point).x;
     data->point.x = tsPanel.getPoint(point).y;
+#ifdef CALITOUCH
+    inputCalibrate(data->point.x, data->point.y);
+    performCalibration(&data->point.x, &data->point.y);
+#endif
   } else {
+#ifdef CALITOUCH
+    inputCalibrateDone();
+#endif
     data->state = LV_INDEV_STATE_REL;
   }
 }
@@ -257,7 +325,14 @@ void LVinputRead(lv_indev_drv_t * drv, lv_indev_data_t*data) {
     data->state = LV_INDEV_STATE_PR;
     data->point.x = lx;
     data->point.y = ly;
+#ifdef CALITOUCH
+    inputCalibrate(data->point.x, data->point.y);
+    performCalibration(&data->point.x, &data->point.y);
+#endif
   } else {
+#ifdef CALITOUCH
+    inputCalibrateDone();
+#endif
     data->state = LV_INDEV_STATE_REL;
   }
 }
@@ -327,6 +402,9 @@ lv_color_t lv_col(uint16_t color) {
   return col;
 }
 
+void drawLine(int32_t xs, int32_t ys, int32_t xe, int32_t ye, int32_t col) {
+  tft.drawLine(xs, ys, xe, ye, col);
+}
 
 //----------------------------------------------------
 // SPIFFS filesystem - drive "C"

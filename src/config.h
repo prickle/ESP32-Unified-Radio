@@ -263,40 +263,17 @@ typedef struct OW_forecast {
 
 } OW_forecast;
 
-
-//I2S audio
- 
-#ifdef SUPERWOOFER
-//Internal mono DAC
-#define I2S_INT_DOUT      37
-#define I2S_INT_BCLK      36
-#define I2S_INT_LRC       35
-
-//External stereo DAC
-#define I2S_EXT_DOUT      21
-#define I2S_EXT_BCLK      13
-#define I2S_EXT_LRC       12
-#endif
-
-#ifdef WORKRADIO
-//External stereo DAC
-#define I2S_DOUT      21
-#define I2S_BCLK      9
-#define I2S_LRC       11
-#endif
-
-#ifdef WAVESHARE28S3
-#define I2S_DOUT      47
-#define I2S_BCLK      48
-#define I2S_LRC       38
-#endif
-
-//I2C Bus
-
-#ifdef BATTERYMON
-//External I2C Bus
-#define I2C_SDA       10
-#define I2C_SCL       11
+//Touchscreen calibration
+#ifdef CALITOUCH
+#define CAL_AVERAGE     50
+#define CAL_STATE_IDLE     0
+#define CAL_STATE_COUNTING 1
+#define CAL_STATE_WAITING  2
+#define CAL_STATE_FINISHED 3
+extern int calTouchCount;
+extern uint8_t calTouchState;
+extern uint32_t calAvgX;
+extern uint32_t calAvgY;
 #endif
 
 #define LV_SYMBOL_DEGREE "\xc2\xb0"
@@ -320,8 +297,10 @@ public:
 extern ftpFSFS ftpFS; 
 
 //EEPROM settings structures
-#define EE_MAGIC  0x45
-#define EE_SIZE   1300
+#define EE_MAGIC_V1  0x45
+#define EE_SIZE_V1   1279
+#define EE_MAGIC_V2  0x46
+#define EE_SIZE      1350
 
 //presets
 struct __attribute__ ((packed)) presetObject{
@@ -384,10 +363,16 @@ struct __attribute__ ((packed)) settingsObject{
   char tz[64];
   bool wide;
   bool weather;
+  //V2
   bool reconnectBt;
   uint8_t pinreqBt;
   uint8_t hostAddrBt[6];
   uint8_t pincodeBt[4];
+  //Touchscreen calibration
+  float calXsc;
+  float calXsh;
+  float calYsc;
+  float calYsh;
 };
 //Pointer to settings object
 extern settingsObject* settings;
